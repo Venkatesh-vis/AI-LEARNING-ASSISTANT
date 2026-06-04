@@ -2,7 +2,6 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import cloudinary from "../config/cloudinary.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,9 +42,6 @@ const upload = multer({
     },
 });
 
-export const uploadToCloudinary = async (filePath,folder = "documents") => {
-    const result = await cloudinary.uploader.upload(filePath, {folder,resource_type: "raw",});
-    return result.secure_url;
-};
+
 
 export default upload;

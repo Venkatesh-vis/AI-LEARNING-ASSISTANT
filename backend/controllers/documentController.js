@@ -4,7 +4,7 @@ import Quiz from '../models/Quiz.js';
 import {extractTextFromPdf} from "../utils/pdfParser.js";
 import {chunkText} from "../utils/textChunker.js"
 import fs from "fs/promises";
-import { uploadToCloudinary } from '../config/multer.js';
+import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 import mongoose, { Mongoose } from 'mongoose';
 
 
@@ -55,14 +55,15 @@ export const uploadDocument = async (req, res, next) => {
         }
 
         const localPath = req.file.path;
-        const cloudinaryUrl = await uploadToCloudinary(localPath, "documents");       
+        const cloudinaryResult = await uploadToCloudinary(localPath, "documents");       
 
         //create document record
         const document = await Document.create({
             userId: req.user.id,
             title,
             fileName: req.file.originalname,
-            filePath: cloudinaryUrl,
+            filePath: cloudinaryResult.url,
+            cloudinaryPublicId: cloudinaryResult.publicId,
             fileSize: req.file.size,
             status: "processing"
         })
@@ -145,7 +146,43 @@ export const getDocuments = async (req, res, next) => {
 
 export const getDocument = async (req, res, next) => {
     try{
+        const {id} = req.params
 
+        if (!id) {
+            return  res.status(400).json({
+                success: false,
+                message: "Document id is required"
+            })
+        }
+
+        const document = await Document.findOne({
+           _id:id,
+           userId: req.user.id,
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                message: "Document not found"
+            })
+        }
+
+        //get count of flashcards and quizzes
+        const flashcardCount = await Flashcard.countDocuments({ documentId: document._id, userId: req.user.id });
+        const quizCount = await Quiz.countDocuments({ documentId: document._id, userId: req.user.id });
+
+        document.lastAccessed = Date.now();
+        await document.save();
+
+        const documentData = document.toObject();
+        documentData.flashcardCount = flashcardCount;
+        documentData.quizCount = quizCount
+
+        return res.status(200).json({
+            success: true,
+            message: "",
+            data: documentData
+        })
     }
     catch(err) {
         next(err)
@@ -154,16 +191,41 @@ export const getDocument = async (req, res, next) => {
 
 export const deleteDocument = async (req, res, next) => {
     try{
+        const {id} = req.params
 
-    }
-    catch(err) {
-        next(err)
-    }
-}
+        if (!id) {
+            return  res.status(400).json({
+                success: false,
+                message: "Document id is required"
+            })
+        }
+        const document = await Document.findOne({
+            _id: id,
+            userId: req.user.id
+        });
 
-export const updateDocument = async (req, res, next) => {
-    try{
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                message: "Document not found"
+            })
+        }
 
+
+        if (document.cloudinaryPublicId) {
+            await deleteFromCloudinary(document.cloudinaryPublicId);
+        }
+
+
+        await Document.deleteOne({
+            _id: id,
+            userId: req.user.id
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Document deleted successfully"
+        });
     }
     catch(err) {
         next(err)

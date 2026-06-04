@@ -14,6 +14,10 @@ const DocumentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    cloudinaryPublicId: {
+        type: String,
+        required: true
+    },
     fileSize: {
         type: Number,
         required: true
