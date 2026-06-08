@@ -69,7 +69,7 @@ export const submitQuiz = async (req, res, next) => {
             })
         }
 
-        if (quiz.completed) {
+        if (quiz.completedAt) {
             return res.status(400).json({
                 success: false,
                 message: "Quiz already completed"

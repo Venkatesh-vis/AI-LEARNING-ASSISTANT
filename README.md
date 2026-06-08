@@ -22,7 +22,78 @@ Users can:
 * Review flashcards
 * Maintain conversation history
 
-The platform follows a Retrieval-Augmented Generation (RAG) architecture where relevant document chunks are retrieved and provided as context before AI generation.
+The platform follows a lightweight Retrieval-Augmented Generation (RAG) architecture where relevant document chunks are retrieved using a custom keyword-based retrieval algorithm and provided as context before AI generation.
+
+---
+
+# Problem Statement
+
+Traditional study materials such as PDFs, notes, documentation, and interview preparation guides are static and difficult to interact with.
+
+Users often spend significant time manually:
+
+* Creating flashcards
+* Building quizzes
+* Writing summaries
+* Revising concepts
+* Searching through lengthy documents
+
+This platform automates the learning workflow by transforming uploaded PDF documents into interactive AI-powered learning resources.
+
+The goal is to improve:
+
+* Learning efficiency
+* Knowledge retention
+* Revision speed
+* Concept understanding
+* Interview preparation
+
+through Retrieval-Augmented Generation (RAG) and Large Language Models.
+
+---
+
+# Backend Module Architecture
+
+```text
+Backend
+│
+├── Authentication Module
+│   ├── Register
+│   ├── Login
+│   ├── Profile Management
+│   └── Password Management
+│
+├── Document Module
+│   ├── PDF Upload
+│   ├── Processing Pipeline
+│   ├── Retrieval
+│   └── Document Management
+│
+├── Flashcard Module
+│   ├── Flashcard Retrieval
+│   ├── Review Tracking
+│   ├── Starred Flashcards
+│   └── Learning Analytics
+│
+├── Quiz Module
+│   ├── Quiz Retrieval
+│   ├── Quiz Submission
+│   ├── Score Calculation
+│   ├── Result Analytics
+│   └── Quiz Management
+│
+├── AI Module
+│   ├── Flashcard Generation
+│   ├── Quiz Generation
+│   ├── Summary Generation
+│   ├── Concept Explanation
+│   └── Context-Aware Chat
+│
+└── Retrieval Module
+    ├── Chunk Search
+    ├── Relevance Scoring
+    └── Context Construction
+```
 
 ---
 
@@ -63,11 +134,11 @@ The platform follows a Retrieval-Augmented Generation (RAG) architecture where r
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    APPLICATION MODULES                      │
-└───────┬─────────────────┬──────────────────┬───────────────┘
-        │                 │                  │
-        ▼                 ▼                  ▼
+└───────┬──────────────┬──────────────┬──────────────┬────────┘
+        │              │              │              │
+        ▼              ▼              ▼              ▼
 
-   Documents       Flashcards         AI Learning
+   Documents      Flashcards       Quizzes      AI Learning
 ```
 
 ---
@@ -235,6 +306,50 @@ Chat  Summary   Flashcards      Quiz     Explanations
 
 ---
 
+# Quiz Architecture
+
+```text
+Generate Quiz
+      │
+      ▼
+
+Store Quiz
+      │
+      ▼
+
+User Takes Quiz
+      │
+      ▼
+
+Submit Answers
+      │
+      ▼
+
+Score Calculation
+      │
+      ▼
+
+Store Results
+      │
+      ▼
+
+View Analytics
+```
+
+Quiz capabilities include:
+
+* Quiz generation using Gemini AI
+* Quiz retrieval by document
+* Quiz retrieval by ID
+* Quiz submission
+* Automatic scoring
+* Answer validation
+* Detailed result analytics
+* Quiz deletion
+* Learning progress tracking
+
+---
+
 # Database Architecture
 
 ```text
@@ -245,16 +360,11 @@ Users
 
 Documents
  │
- ├───────────────┐
- │               │
- ▼               ▼
+ ├───────────────┬───────────────┬───────────────┐
+ │               │               │               │
+ ▼               ▼               ▼               ▼
 
-FlashCards     Quizzes
-
- │
- ▼
-
-ChatHistory
+FlashCards     Quizzes      ChatHistory    AI Features
 ```
 
 ---
@@ -309,6 +419,24 @@ Benefits:
 
 ---
 
+### Quiz Analytics Storage
+
+Quiz submissions store:
+
+* User answers
+* Correctness
+* Completion timestamps
+* Final scores
+
+Benefits:
+
+* Learning analytics
+* Progress tracking
+* Performance review
+* Future dashboard support
+
+---
+
 ### Chat History Persistence
 
 Conversations are stored in MongoDB.
@@ -321,21 +449,95 @@ Benefits:
 
 ---
 
+# Security Architecture
+
+### Authentication
+
+* JWT-based authentication
+* HttpOnly cookie storage
+* 7-day token expiration
+* Route protection middleware
+
+### Authorization
+
+All resources are ownership-scoped.
+
+```javascript
+{
+  userId: req.user.id
+}
+```
+
+This prevents users from accessing documents, quizzes, flashcards, or chat history belonging to other users.
+
+### Password Security
+
+* Passwords are hashed using bcrypt
+* Password field excluded using `select: false`
+
+### File Validation
+
+Uploads are restricted to:
+
+* PDF files only
+* Maximum size: 10 MB
+
+---
+
+# Scalability Considerations
+
+### Asynchronous Document Processing
+
+PDF uploads return immediately while extraction and chunk generation continue in the background.
+
+Benefits:
+
+* Faster API responses
+* Better user experience
+* Improved scalability
+
+### Cloud Storage Separation
+
+Files are stored in Cloudinary while metadata remains in MongoDB.
+
+Benefits:
+
+* Reduced server storage usage
+* Independent file scaling
+
+### Chunk-Based Retrieval
+
+Benefits:
+
+* Lower token consumption
+* Better retrieval accuracy
+* Improved context relevance
+
+### Modular AI Services
+
+Benefits:
+
+* Easier maintenance
+* Future model replacement
+* Multi-model support
+
+---
+
 # Technology Stack
 
-| Layer           | Technology                                      |
-| --------------- | ----------------------------------------------- |
-| Frontend        | React, TypeScript, Tailwind CSS, Redux Tool Kit |
-| Backend         | Node.js, Express.js                             |
-| Database        | MongoDB, Mongoose                               |
-| Authentication  | JWT, HttpOnly Cookies                           |
-| File Upload     | Multer                                          |
-| PDF Processing  | pdf-parse                                       |
-| Cloud Storage   | Cloudinary                                      |
-| AI Model        | Gemini 2.5 Flash                                |
-| AI Pattern      | Retrieval-Augmented Generation (RAG)            |
-| Version Control | Git, GitHub                                     |
-| API Testing     | Postman                                         |
+| Layer           | Technology                                     |
+| --------------- | ---------------------------------------------- |
+| Frontend        | React, TypeScript, Tailwind CSS, Redux Toolkit |
+| Backend         | Node.js, Express.js                            |
+| Database        | MongoDB, Mongoose                              |
+| Authentication  | JWT, HttpOnly Cookies                          |
+| File Upload     | Multer                                         |
+| PDF Processing  | pdf-parse                                      |
+| Cloud Storage   | Cloudinary                                     |
+| AI Model        | Gemini 2.5 Flash                               |
+| AI Pattern      | Retrieval-Augmented Generation (RAG)           |
+| Version Control | Git, GitHub                                    |
+| API Testing     | Postman                                        |
 
 ---
 
@@ -354,9 +556,14 @@ Benefits:
 * Context-Aware Document Chat
 * AI Concept Explanations
 * Flashcard Review Tracking
-* Quiz Performance Tracking
+* Starred Flashcards
+* Quiz Generation
+* Quiz Submission
+* Quiz Scoring
+* Quiz Result Analytics
 * Chat History Tracking
 * Ownership-Based Access Control
+* Learning Progress Tracking
 
 ```
 ```

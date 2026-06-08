@@ -2194,4 +2194,679 @@ Benefits:
 
 ---
 
+# 6. Quiz Management Module
+
+## Purpose
+
+The Quiz Module provides assessment and learning validation capabilities on top of AI-generated content.
+
+After quizzes are generated from uploaded documents, users can attempt them, submit answers, review performance, and track learning progress.
+
+The module supports:
+
+* Quiz retrieval
+* Quiz attempts
+* Answer submission
+* Score calculation
+* Result analytics
+* Quiz deletion
+* Learning progress tracking
+
+---
+
+# Architecture
+
+```text
+Generate Quiz
+      │
+      ▼
+
+Store Quiz
+      │
+      ▼
+
+User Takes Quiz
+      │
+      ▼
+
+Submit Answers
+      │
+      ▼
+
+Score Calculation
+      │
+      ▼
+
+Store Results
+      │
+      ▼
+
+View Analytics
+```
+
+---
+
+# Quiz Schema
+
+## Collection
+
+```javascript
+quizzes
+```
+
+---
+
+## Schema Structure
+
+```javascript
+{
+  userId: ObjectId,
+
+  documentId: ObjectId,
+
+  title: String,
+
+  questions: [
+    {
+      question: String,
+      options: [String],
+      correctAnswer: String,
+      explanation: String,
+      difficulty: String
+    }
+  ],
+
+  userAnswers: [
+    {
+      questionIndex: Number,
+      selectedAnswer: String,
+      isCorrect: Boolean,
+      answeredAt: Date
+    }
+  ],
+
+  score: Number,
+
+  totalQuestions: Number,
+
+  completedAt: Date
+}
+```
+
+---
+
+## Field Definitions
+
+### userId
+
+Owner of the quiz.
+
+```javascript
+{
+  type: ObjectId,
+  ref: "User"
+}
+```
+
+---
+
+### documentId
+
+Associated source document.
+
+```javascript
+{
+  type: ObjectId,
+  ref: "Document"
+}
+```
+
+---
+
+### title
+
+Quiz title.
+
+Example:
+
+```text
+JavaScript Fundamentals Quiz
+```
+
+---
+
+### questions
+
+Stores generated quiz questions.
+
+Structure:
+
+```javascript
+{
+  question,
+  options,
+  correctAnswer,
+  explanation,
+  difficulty
+}
+```
+
+---
+
+### userAnswers
+
+Stores submitted answers.
+
+Structure:
+
+```javascript
+{
+  questionIndex,
+  selectedAnswer,
+  isCorrect,
+  answeredAt
+}
+```
+
+---
+
+### score
+
+Stores final percentage score.
+
+Example:
+
+```javascript
+80
+```
+
+---
+
+### totalQuestions
+
+Stores total number of quiz questions.
+
+Example:
+
+```javascript
+10
+```
+
+---
+
+### completedAt
+
+Stores completion timestamp.
+
+Example:
+
+```javascript
+2026-07-12T10:30:00.000Z
+```
+
+---
+
+# Route Structure
+
+```text
+/api/quizzes
+
+GET    /:documentId
+GET    /quiz/:id
+POST   /:id/submit
+GET    /:id/results
+DELETE /:id
+```
+
+All routes require authentication.
+
+```text
+Authentication: Required (JWT HttpOnly Cookie)
+```
+
+---
+
+# Get Quizzes By Document
+
+## Route
+
+```http
+GET /api/quizzes/:documentId
+```
+
+---
+
+## Purpose
+
+Returns all quizzes generated from a specific document.
+
+---
+
+## Additional Data
+
+Document metadata is populated.
+
+```javascript
+.populate(
+  "documentId",
+  "title fileName"
+)
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "count": 2,
+  "message": "Quizzes fetched successfully",
+  "data": [
+    {
+      "_id": "687abc123",
+      "title": "JavaScript Quiz"
+    }
+  ]
+}
+```
+
+---
+
+# Get Quiz By Id
+
+## Route
+
+```http
+GET /api/quizzes/quiz/:id
+```
+
+---
+
+## Purpose
+
+Returns a single quiz and all associated questions.
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "message": "Quiz fetched successfully",
+  "data": {
+    "_id": "687abc123",
+    "title": "JavaScript Quiz",
+    "questions": []
+  }
+}
+```
+
+---
+
+## Error Response
+
+```json
+{
+  "success": false,
+  "message": "Quiz not found"
+}
+```
+
+---
+
+# Submit Quiz
+
+## Route
+
+```http
+POST /api/quizzes/:id/submit
+```
+
+---
+
+## Purpose
+
+Submits user answers and calculates quiz results.
+
+---
+
+## Request Body
+
+```json
+{
+  "answers": [
+    {
+      "questionIndex": 0,
+      "selectedAnswer": "Closure"
+    },
+    {
+      "questionIndex": 1,
+      "selectedAnswer": "Promise"
+    }
+  ]
+}
+```
+
+---
+
+## Processing Flow
+
+```text
+Validate Answers
+        │
+        ▼
+Load Quiz
+        │
+        ▼
+Compare Answers
+        │
+        ▼
+Calculate Score
+        │
+        ▼
+Store User Answers
+        │
+        ▼
+Mark Quiz Completed
+        │
+        ▼
+Return Results
+```
+
+---
+
+## Score Calculation
+
+```javascript
+score =
+(correctAnswers / totalQuestions) * 100
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "message": "Quiz submitted successfully",
+  "data": {
+    "quizId": "687abc123",
+    "score": 80,
+    "correctCount": 4,
+    "totalQuestions": 5,
+    "percentage": 80,
+    "userAnswers": []
+  }
+}
+```
+
+---
+
+## Error Responses
+
+### Invalid Answers
+
+```json
+{
+  "success": false,
+  "message": "Please provide answers array"
+}
+```
+
+### Quiz Already Completed
+
+```json
+{
+  "success": false,
+  "message": "Quiz already completed"
+}
+```
+
+### Quiz Not Found
+
+```json
+{
+  "success": false,
+  "message": "Quiz not found"
+}
+```
+
+---
+
+# Get Quiz Results
+
+## Route
+
+```http
+GET /api/quizzes/:id/results
+```
+
+---
+
+## Purpose
+
+Returns detailed quiz performance analytics.
+
+---
+
+## Includes
+
+* User answers
+* Correct answers
+* Explanations
+* Quiz score
+* Completion timestamp
+
+---
+
+## Processing Flow
+
+```text
+Locate Quiz
+      │
+      ▼
+Verify Completion
+      │
+      ▼
+Build Detailed Results
+      │
+      ▼
+Return Analytics
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "message": "Quiz results fetched successfully",
+  "data": {
+    "quiz": {
+      "id": "687abc123",
+      "title": "JavaScript Quiz",
+      "score": 80,
+      "totalQuestions": 5,
+      "completedAt": "2026-07-12T10:30:00.000Z"
+    },
+    "results": [
+      {
+        "questionIndex": 0,
+        "question": "What is a Closure?",
+        "correctAnswer": "A function with lexical scope access",
+        "selectedAnswer": "A function with lexical scope access",
+        "isCorrect": true,
+        "explanation": "Closures preserve lexical scope."
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Error Response
+
+```json
+{
+  "success": false,
+  "message": "Quiz not completed yet"
+}
+```
+
+---
+
+# Delete Quiz
+
+## Route
+
+```http
+DELETE /api/quizzes/:id
+```
+
+---
+
+## Purpose
+
+Deletes a quiz permanently.
+
+---
+
+## Processing Flow
+
+```text
+Validate Ownership
+        │
+        ▼
+Locate Quiz
+        │
+        ▼
+Delete Record
+        │
+        ▼
+Return Success
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "message": "Quiz deleted successfully"
+}
+```
+
+---
+
+## Error Response
+
+```json
+{
+  "success": false,
+  "message": "Quiz not found"
+}
+```
+
+---
+
+# Learning Analytics
+
+The Quiz Module tracks learning performance through:
+
+## User Answers
+
+```javascript
+userAnswers
+```
+
+Tracks:
+
+* Selected answers
+* Correctness
+* Submission timestamps
+
+---
+
+## Score
+
+```javascript
+score
+```
+
+Tracks overall performance percentage.
+
+---
+
+## Completion Tracking
+
+```javascript
+completedAt
+```
+
+Tracks quiz completion time.
+
+---
+
+# Design Decisions
+
+## Store Answers Per Attempt
+
+Benefits:
+
+* Performance analytics
+* Answer review
+* Learning insights
+
+---
+
+## Percentage-Based Scoring
+
+Benefits:
+
+* Easy interpretation
+* Consistent grading
+* Standardized metrics
+
+---
+
+## Detailed Result Generation
+
+Benefits:
+
+* Review mistakes
+* Reinforce learning
+* Improve retention
+
+---
+
+## Document-Centric Organization
+
+Quizzes remain linked to source documents.
+
+Benefits:
+
+* Better organization
+* Easier navigation
+* Context-aware learning
+
+---
+
+## Ownership Validation
+
+All quiz operations are scoped using:
+
+```javascript
+{
+  _id: req.params.id,
+  userId: req.user.id
+}
+```
+
+This prevents unauthorized access to other users' quizzes.
 
