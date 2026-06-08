@@ -1,5 +1,6 @@
 import "./config/env.js";
 import express from 'express';
+import cookieParser from "cookie-parser";
 import cors from 'cors';
 import path from 'path';
 import helmet from 'helmet';
@@ -24,6 +25,7 @@ app.use(cors({
 app.use(helmet());
 app.use(express.urlencoded({extended: true}));
 app.use(express.json());
+app.use(cookieParser());
 
 // routes
 app.use('/', routes);

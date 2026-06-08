@@ -26,7 +26,6 @@ export const chunkText = (text, chunkSize = 500, overlap = 50) => {
         //if paragraph exceed chunk size , split by words
         if (paragraphWordCount > chunkSize) {
 
-            // save current chunk first
             if (currentChunk.length > 0) {
                 chunks.push({
                     content: currentChunk.join('\n\n'),

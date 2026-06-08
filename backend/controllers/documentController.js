@@ -5,7 +5,7 @@ import {extractTextFromPdf} from "../utils/pdfParser.js";
 import {chunkText} from "../utils/textChunker.js"
 import fs from "fs/promises";
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
-import mongoose, { Mongoose } from 'mongoose';
+import mongoose from 'mongoose';
 
 
 const processPdf = async (documentId, filePath) => {

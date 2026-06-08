@@ -1,18 +1,23 @@
-# Authentication Controllers Documentation
 
-This document describes the authentication controllers, middleware, and user model.
+# 1. Authentication System
+
+## Overview
+
+This system uses **JWT-based cookie authentication** for secure user authentication and authorization.
+
+Authentication tokens are stored in **HttpOnly cookies** with a **7-day expiration period**.
+
+The authentication architecture emphasizes:
+
+* Secure credential handling
+* JWT-based authentication
+* Cookie-based session management
+* Ownership-based access control
+* Stateless server architecture
 
 ---
 
-# User Schema
-
-## Collection
-
-```javascript
-users
-```
-
-## Mongoose Schema
+## User Model
 
 ```javascript
 {
@@ -41,26 +46,18 @@ users
 }
 ```
 
-## Generated Fields
+### Key Decisions
 
-```javascript
-createdAt
-updatedAt
-```
-
-Because:
-
-```javascript
-{
-  timestamps: true
-}
-```
+* `select: false` prevents password hashes from being returned accidentally
+* Unique email ensures account uniqueness
+* Unique username prevents identity conflicts
+* `timestamps: true` provides auditability
 
 ---
 
-# JWT Structure
+## JWT Strategy
 
-Generated using:
+Authentication tokens are generated using JWT.
 
 ```javascript
 jwt.sign(
@@ -72,896 +69,461 @@ jwt.sign(
 )
 ```
 
-## JWT Payload
+### JWT Payload
 
-```json
+```javascript
 {
-  "id": "685cbf5f3a9f22c5f47e93c1",
-  "iat": 1710000000,
-  "exp": 1710604800
+  id: "687abc123"
 }
 ```
 
+### Design Notes
+
+* Minimal payload reduces token size
+* No sensitive user data stored in token
+* Tokens expire automatically
+* Stateless authentication
+* No server-side session storage required
+
 ---
 
-# Authentication Middleware
+## Cookie-Based Authentication
 
-## Purpose
+After successful login or registration, JWT tokens are stored inside an HttpOnly cookie.
 
-Verifies JWT tokens and protects private routes.
+### Cookie Configuration
 
----
-
-## Required Header
-
-```http
-Authorization: Bearer <token>
+```javascript
+res.cookie(
+  "token",
+  token,
+  {
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  }
+)
 ```
 
----
-
-## Success Flow
+### Cookie Expiration
 
 ```text
-Request
- ↓
-Read Authorization Header
- ↓
-Extract JWT
- ↓
+7 Days
+```
+
+### Benefits
+
+* Token inaccessible from JavaScript
+* Reduced XSS attack surface
+* Automatic browser storage
+* Automatic request inclusion
+* Improved security compared to localStorage
+
+---
+
+## Authentication Flow
+
+```text
+Register / Login
+        │
+        ▼
+Generate JWT
+        │
+        ▼
+Store JWT In HttpOnly Cookie
+        │
+        ▼
+Browser Stores Cookie
+        │
+        ▼
+Subsequent Requests
+        │
+        ▼
+Authentication Middleware
+        │
+        ▼
 Verify JWT
- ↓
-Attach User To req.user
- ↓
-next()
+        │
+        ▼
+Attach req.user
 ```
 
 ---
 
-## req.user Structure
+## Authentication Middleware
 
-After successful verification:
+### Purpose
+
+Protects private routes by validating JWT tokens stored in cookies.
+
+### Processing Flow
+
+```text
+Read Cookie
+    │
+    ▼
+Extract JWT
+    │
+    ▼
+Verify Signature
+    │
+    ▼
+Validate Expiration
+    │
+    ▼
+Attach User Context
+    │
+    ▼
+Continue Request
+```
+
+### Injected Context
 
 ```javascript
 req.user = {
-  id: "685cbf5f3a9f22c5f47e93c1",
-  iat: 1710000000,
-  exp: 1710604800
+  id,
+  iat,
+  exp
 }
 ```
 
 ---
 
-## Error Response
+# Authentication APIs
 
-### Missing Token
+---
 
-Status:
+## Register User
+
+### Route
 
 ```http
-401 Unauthorized
+POST /api/auth/register
 ```
 
-Response:
-
-```json
-{
-  "message": "Unauthorized"
-}
-```
-
----
-
-### Invalid Token
-
-Status:
-
-```http
-401 Unauthorized
-```
-
-Response:
-
-```json
-{
-  "message": "Invalid or expired token"
-}
-```
-
----
-
-# register()
-
-Creates a new user account.
-
----
-
-## Route
-
-```http
-POST auth/register
-```
-
----
-
-## Authentication
+### Authentication
 
 Not Required
 
----
-
-## Request Headers
-
-```http
-Content-Type: application/json
-```
-
----
-
-## Request Body
-
-### Schema
-
-```typescript
-{
-  username: string;
-  email: string;
-  password: string;
-}
-```
-
-### Example
+### Request Body
 
 ```json
 {
   "username": "venkatesh",
   "email": "venkatesh@gmail.com",
-  "password": "123456"
+  "password": "password123"
 }
 ```
 
----
-
-## Validation Rules
-
-| Field    | Required |
-| -------- | -------- |
-| username | Yes      |
-| email    | Yes      |
-| password | Yes      |
-
----
-
-## Possible Validations
-
-Current controller validates:
-
-```javascript
-if(!username || !email || !password)
-```
-
-Returns:
-
-```http
-400 Bad Request
-```
-
-```json
-{
-  "message": "All fields are required"
-}
-```
-
----
-
-## Database Operations
-
-### Check Existing User
-
-```javascript
-User.findOne({ email })
-```
-
----
-
-### Hash Password
-
-```javascript
-bcrypt.hash(password, 10)
-```
-
-Example:
+### Processing Flow
 
 ```text
-123456
-
-↓
-
-$2b$10$7zG...
+Validate Input
+      │
+      ▼
+Check Existing User
+      │
+      ▼
+Hash Password
+      │
+      ▼
+Create User
+      │
+      ▼
+Generate JWT
+      │
+      ▼
+Store Cookie
+      │
+      ▼
+Return User
 ```
 
----
-
-### Create User
-
-```javascript
-User.create({
- username,
- email,
- password: hashedPassword
-})
-```
-
----
-
-### Generate JWT
-
-```javascript
-generateToken(user._id)
-```
-
----
-
-## Success Response
-
-Status:
-
-```http
-201 Created
-```
-
-Response:
+### Success Response
 
 ```json
 {
   "success": true,
   "data": {
     "user": {
-      "id": "685cbf5f3a9f22c5f47e93c1",
+      "_id": "687abc123",
       "username": "venkatesh",
       "email": "venkatesh@gmail.com",
-      "profilePicture": "",
-      "createdAt": "2026-06-03T10:00:00.000Z"
-    },
-    "token": "jwt_token"
+      "profilePicture": ""
+    }
   },
-  "message": "User Registered Successfuly"
+  "message": "User Registered Successfully"
 }
 ```
 
+### Notes
+
+JWT is stored in an HttpOnly cookie.
+
+No token is returned in the response body.
+
 ---
 
-## Error Responses
+## Login User
 
-### Email Already Exists
-
-Status:
+### Route
 
 ```http
-400 Bad Request
+POST /api/auth/login
 ```
 
-Response:
-
-```json
-{
-  "success": false,
-  "message": "Email already in use"
-}
-```
-
----
-
-### Missing Fields
-
-Status:
-
-```http
-400 Bad Request
-```
-
-Response:
-
-```json
-{
-  "message": "All fields are required"
-}
-```
-
----
-
-# login()
-
-Authenticates an existing user.
-
----
-
-## Route
-
-```http
-POST auth/login
-```
-
----
-
-## Authentication
+### Authentication
 
 Not Required
 
----
-
-## Request Headers
-
-```http
-Content-Type: application/json
-```
-
----
-
-## Request Body
-
-### Schema
-
-```typescript
-{
-  email: string;
-  password: string;
-}
-```
-
-### Example
+### Request Body
 
 ```json
 {
   "email": "venkatesh@gmail.com",
-  "password": "123456"
+  "password": "password123"
 }
 ```
 
----
+### Processing Flow
 
-## Database Operations
-
-### Fetch User
-
-```javascript
-User.findOne({ email })
-.select("+password")
+```text
+Validate Input
+      │
+      ▼
+Find User
+      │
+      ▼
+Compare Password
+      │
+      ▼
+Generate JWT
+      │
+      ▼
+Store Cookie
+      │
+      ▼
+Return User
 ```
 
-Reason:
-
-```javascript
-password: {
- select:false
-}
-```
-
-Password must be explicitly selected.
-
----
-
-### Compare Password
-
-```javascript
-bcrypt.compare(
- password,
- user.password
-)
-```
-
----
-
-### Generate Token
-
-```javascript
-generateToken(user._id)
-```
-
----
-
-## Success Response
-
-Status:
-
-```http
-200 OK
-```
+### Success Response
 
 ```json
 {
   "success": true,
   "data": {
     "user": {
-      "id": "685cbf5f3a9f22c5f47e93c1",
+      "_id": "687abc123",
       "username": "venkatesh",
       "email": "venkatesh@gmail.com",
       "profilePicture": ""
-    },
-    "token": "jwt_token"
+    }
   },
   "message": "Login Successful"
 }
 ```
 
+### Notes
+
+JWT is stored in an HttpOnly cookie.
+
+No token is returned in the response body.
+
 ---
 
-## Error Responses
+## Get Profile
 
-### Missing Fields
+### Route
 
 ```http
-400 Bad Request
+GET /api/auth/profile
 ```
 
-```json
-{
-  "message": "All fields are required"
-}
-```
-
----
-
-### User Not Found
-
-```http
-401 Unauthorized
-```
-
-```json
-{
-  "success": false,
-  "message": "Invalid credentials"
-}
-```
-
----
-
-### Incorrect Password
-
-```http
-401 Unauthorized
-```
-
-```json
-{
-  "success": false,
-  "message": "Invalid credentials"
-}
-```
-
----
-
-# getProfile()
-
-Returns currently authenticated user.
-
----
-
-## Route
-
-```http
-GET auth/profile
-```
-
----
-
-## Authentication
+### Authentication
 
 Required
 
-```http
-Authorization: Bearer <token>
-```
+### Purpose
 
----
+Returns the currently authenticated user.
 
-## Request Body
-
-None
-
----
-
-## Database Operation
-
-```javascript
-User.findById(req.user.id)
-```
-
----
-
-## Success Response
-
-```http
-200 OK
-```
+### Success Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": "685cbf5f3a9f22c5f47e93c1",
+    "_id": "687abc123",
     "username": "venkatesh",
     "email": "venkatesh@gmail.com",
-    "profilePicture": "",
-    "createdAt": "2026-06-03T10:00:00.000Z",
-    "updatedAt": "2026-06-03T10:00:00.000Z"
+    "profilePicture": ""
   }
 }
 ```
 
 ---
 
-# updateProfile()
+## Update Profile
 
-Updates user information.
-
----
-
-## Route
+### Route
 
 ```http
-PUT auth/profile
+PUT /api/auth/profile
 ```
 
----
-
-## Authentication
+### Authentication
 
 Required
 
-```http
-Authorization: Bearer <token>
-```
-
----
-
-## Request Body
-
-### Schema
-
-```typescript
-{
-  username?: string;
-  email?: string;
-  profilePicture?: string;
-}
-```
-
-All fields optional.
-
----
-
-## Example Request
+### Request Body
 
 ```json
 {
-  "username": "venkat",
-  "profilePicture": "https://cdn.com/avatar.png"
+  "username": "venkatesh",
+  "email": "venkatesh@gmail.com",
+  "profilePicture": "https://image-url.com/profile.png"
 }
 ```
 
----
+### Purpose
 
-## Database Operation
-
-```javascript
-const user =
- await User.findById(req.user.id);
-```
-
-Update only provided fields.
-
-```javascript
-if(username)
-if(email)
-if(profilePicture)
-```
-
-Save:
-
-```javascript
-await user.save();
-```
+Supports partial updates of user information.
 
 ---
 
-## Success Response
+## Change Password
+
+### Route
 
 ```http
-200 OK
+PUT /api/auth/change-password
 ```
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "685cbf5f3a9f22c5f47e93c1",
-    "username": "venkat",
-    "email": "venkatesh@gmail.com",
-    "profilePicture": "https://cdn.com/avatar.png"
-  },
-  "message": "Profile updated successfully"
-}
-```
-
----
-
-# changePassword()
-
-Changes authenticated user's password.
-
----
-
-## Route
-
-```http
-PUT auth/change-password
-```
-
----
-
-## Authentication
+### Authentication
 
 Required
 
-```http
-Authorization: Bearer <token>
-```
-
----
-
-## Request Body
-
-### Schema
-
-```typescript
-{
-  currentPassword: string;
-  newPassword: string;
-}
-```
-
----
-
-## Example Request
+### Request Body
 
 ```json
 {
-  "currentPassword": "123456",
-  "newPassword": "abcdef"
+  "currentPassword": "oldPassword",
+  "newPassword": "newPassword"
 }
 ```
 
----
+### Processing Flow
 
-## Validation
-
-Both fields required.
-
-```javascript
-if(!currentPassword || !newPassword)
+```text
+Verify User
+     │
+     ▼
+Validate Current Password
+     │
+     ▼
+Update Password
+     │
+     ▼
+Save User
 ```
 
 ---
 
-## Database Operations
+## Security Considerations
 
-### Fetch User
-
-```javascript
-User.findById(req.user.id)
-.select("+password")
-```
-
----
-
-### Verify Current Password
-
-```javascript
-bcrypt.compare(
- currentPassword,
- user.password
-)
-```
-
----
-
-### Update Password
-
-```javascript
-user.password = newPassword;
-```
-
----
-
-### Save User
-
-```javascript
-await user.save();
-```
-
----
-
-## Success Response
-
-```http
-200 OK
-```
-
-```json
-{
-  "success": true,
-  "message": "Password changes successfully"
-}
-```
-
----
-
-## Error Responses
-
-### Missing Fields
-
-```http
-400 Bad Request
-```
-
-```json
-{
-  "success": false,
-  "message": "Please provide current and new password"
-}
-```
-
----
-
-### Incorrect Current Password
-
-```http
-401 Unauthorized
-```
-
-```json
-{
-  "success": false,
-  "message": "Current password is incorrect"
-}
-```
-
----
-
-# HTTP Status Codes Used
-
-| Status | Meaning          |
-| ------ | ---------------- |
-| 200    | Success          |
-| 201    | Resource Created |
-| 400    | Invalid Request  |
-| 401    | Unauthorized     |
-
----
-
-# Security Notes
-
-## Password Hashing
+### Password Hashing
 
 ```javascript
 bcrypt.hash(password, 10)
 ```
 
-Passwords are stored as hashes.
+Passwords are never stored in plain text.
 
 ---
 
-## Password Hidden By Default
+### Hidden Password Field
 
 ```javascript
-select:false
+select: false
 ```
 
 Prevents accidental exposure.
 
 ---
 
-## JWT Authentication
+### HttpOnly Cookies
+
+JWT tokens cannot be accessed through:
 
 ```javascript
-jwt.sign()
-jwt.verify()
+document.cookie
 ```
 
-Provides stateless authentication.
+Reducing XSS attack exposure.
 
 ---
 
-## Protected Routes
+### JWT Expiration
 
-All profile-related operations require a valid JWT token.
-
----
-
-# Document Management & PDF Processing Module
-
-## Overview
-
-This module handles PDF document uploads, storage, processing, and retrieval.
-
-The uploaded PDF is:
-
-1. Validated using Multer
-2. Stored temporarily on the server
-3. Uploaded to Cloudinary
-4. Saved as a Document record in MongoDB
-5. Parsed for text extraction
-6. Split into chunks for AI/RAG processing
-7. Marked as ready for downstream features such as:
-
-   * Flashcards
-   * Quiz Generation
-   * Semantic Search
-   * AI Interview Preparation
-
----
-
-# Architecture
+Tokens expire automatically after:
 
 ```text
-Client
-  │
-  ▼
-Upload PDF
-  │
-  ▼
-Multer Validation
-  │
-  ▼
-Temporary Local Storage
-  │
-  ▼
-Cloudinary Upload
-  │
-  ▼
-MongoDB Document Record
-  │
-  ▼
-PDF Text Extraction
-  │
-  ▼
-Chunk Generation
-  │
-  ▼
-Store Chunks
-  │
-  ▼
-Document Ready
+7 Days
 ```
 
 ---
 
-# Route Structure
+### Ownership Validation
 
-```text
-/api/document
-
-POST    /upload
-GET     /
-GET     /:id
-DELETE  /:id
-```
-
-All routes require JWT authentication.
-
----
-
-# Document Schema
-
-## Collection
+All protected resources are scoped using:
 
 ```javascript
-documents
+{
+  userId: req.user.id
+}
 ```
 
-## Schema Structure
+Preventing cross-user access.
+
+---
+
+### Minimal JWT Payload
+
+Only the user identifier is stored in the token.
+
+```javascript
+{
+  id
+}
+```
+
+This minimizes payload size and exposure.
+
+---
+
+
+# 2. Document Processing Module
+
+## Purpose
+
+Handles **PDF ingestion → transformation → AI-ready structuring**
+
+Supports:
+
+* Keyword-Based Retrieval-Augmented Generation (RAG)
+* Keyword-Based Retrieval / Context Retrieval
+* Flashcards & quiz generation
+
+---
+
+## High-Level Pipeline
+
+```
+Upload → Validate → Store → Extract → Chunk → Persist → Ready
+```
+
+---
+
+## Document Model
 
 ```javascript
 {
@@ -978,419 +540,430 @@ documents
       chunkIndex: Number
     }
   ],
+  status: "processing" | "ready" | "failed",
   uploadedDate: Date,
-  lastAccessed: Date,
-  status: String
+  lastAccessed: Date
 }
 ```
 
 ---
 
-## Status Values
+## Upload Flow
 
-| Value      | Description                         |
-| ---------- | ----------------------------------- |
-| processing | PDF uploaded and processing started |
-| ready      | PDF processed successfully          |
-| failed     | PDF processing failed               |
+### Endpoint
 
----
-
-# Upload Pipeline
-
-## Route
-
-```http
+```
 POST /api/document/upload
 ```
 
-## Authentication
+### Steps
 
-Required
-
-```http
-Authorization: Bearer <token>
-```
-
----
-
-## Request Type
-
-```http
-multipart/form-data
-```
+1. Validate PDF (type + size)
+2. Store temporarily (disk)
+3. Upload to Cloudinary (persistent storage)
+4. Create DB record (`status: processing`)
+5. Trigger async processing
+6. Cleanup local file
 
 ---
 
-## Request Body
+## PDF Processing Pipeline
 
-| Field | Type   | Required |
-| ----- | ------ | -------- |
-| title | String | Yes      |
-| file  | PDF    | Yes      |
-
----
-
-## Example Request
-
-```text
-title = JavaScript Interview Notes
-
-file = javascript.pdf
-```
-
----
-
-## Validation
-
-### Missing File
-
-Status
-
-```http
-400 Bad Request
-```
-
-Response
-
-```json
-{
-  "success": false,
-  "message": "Please upload pdf file"
-}
-```
-
----
-
-### Missing Title
-
-Status
-
-```http
-400 Bad Request
-```
-
-Response
-
-```json
-{
-  "success": false,
-  "message": "Please provide document title"
-}
-```
-
----
-
-## Upload Processing Flow
-
-### Step 1
-
-Validate uploaded file.
-
-Only PDF files are accepted.
-
-### Step 2
-
-Store file temporarily.
-
-```text
-/uploads/documents
-```
-
-### Step 3
-
-Upload file to Cloudinary.
-
-```javascript
-uploadToCloudinary(
-    localPath,
-    "documents"
-)
-```
-
-### Step 4
-
-Create MongoDB document.
-
-Initial status:
-
-```json
-{
-  "status": "processing"
-}
-```
-
-### Step 5
-
-Start background PDF processing.
-
-```javascript
-processPdf(
-    document._id,
-    localPath
-)
-```
-
-### Step 6
-
-Remove temporary local file.
-
----
-
-## Success Response
-
-Status
-
-```http
-201 Created
-```
-
-Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "685f123456",
-    "title": "JavaScript Notes",
-    "filePath": "https://res.cloudinary.com/...",
-    "fileSize": 245760,
-    "status": "processing"
-  },
-  "message": "Document uploaded successfully"
-}
-```
-
----
-
-# PDF Processing Pipeline
-
-## processPdf()
-
-Responsible for transforming PDF content into AI-ready text chunks.
-
----
-
-## Processing Flow
-
-```text
-PDF
- │
- ▼
-Extract Text
- │
- ▼
-Generate Chunks
- │
- ▼
-Store Chunks
- │
- ▼
-Update Status
-```
-
----
-
-## Text Extraction
-
-Uses:
+### 1. Text Extraction
 
 ```javascript
 pdf-parse
 ```
 
-Implementation:
-
-```javascript
-extractTextFromPdf(filePath)
-```
-
 Returns:
 
-```javascript
-{
-  text,
-  numPages,
-  info
-}
-```
+* Raw text
+* Metadata
+* Page count
 
 ---
 
-## Chunk Generation
-
-Uses:
+### 2. Chunking Strategy
 
 ```javascript
-chunkText(
-    text,
-    500,
-    50
-)
+chunkText(text, 500, 50)
 ```
 
-### Configuration
+* Chunk size: 500 words
+* Overlap: 50 words
 
-| Setting    | Value |
-| ---------- | ----- |
-| Chunk Size | 500   |
-| Overlap    | 50    |
+**Why overlap?**
+Preserves semantic continuity → improves retrieval quality in RAG systems
 
 ---
 
-### Example
+### 3. Storage
 
-```text
-Chunk 1
-Words 1 - 500
+* Chunks stored inside document
+* Enables:
 
-Chunk 2
-Words 451 - 950
-
-Chunk 3
-Words 901 - 1400
-```
-
-Overlap preserves context between chunks and improves downstream AI retrieval accuracy.
+  * Vector indexing (future)
+  * Context-aware querying
 
 ---
 
-## Success Update
+### 4. Status Lifecycle
 
-Document status becomes:
+| Status     | Meaning                   |
+| ---------- | ------------------------- |
+| processing | Upload completed          |
+| ready      | Fully processed           |
+| failed     | Processing error occurred |
 
-```json
-{
-  "status": "ready"
-}
+---
+
+## Document APIs
+
+### Get All Documents
+
+```
+GET /api/document
+```
+
+* Aggregation pipeline:
+
+  * `$match` (user scope)
+  * `$lookup` (flashcards, quizzes)
+  * `$addFields` (counts)
+  * `$sort`
+
+---
+
+### Get Single Document
+
+```
+GET /api/document/:id
+```
+
+* Updates `lastAccessed`
+* Returns computed metadata
+
+---
+
+### Delete Document
+
+```
+DELETE /api/document/:id
+```
+
+**Flow**
+
+```
+Validate → Verify Ownership → Delete Cloudinary → Delete DB Record
 ```
 
 ---
 
-## Failure Update
+## File Handling
 
-Document status becomes:
+### Multer Configuration
 
-```json
-{
-  "status": "failed"
-}
+* Storage: disk
+* Max size: 10MB
+* MIME: `application/pdf`
+
+### Naming Strategy
+
+```
+<timestamp>-<random>-document.pdf
 ```
 
 ---
 
-# Multer Configuration
-
-## Storage Strategy
-
-Uses disk storage.
+## Cloud Storage
 
 ```javascript
-multer.diskStorage()
+cloudinary.uploader.upload(filePath, {
+  folder: "documents",
+  resource_type: "raw"
+})
 ```
 
-Temporary upload location:
+**Why Cloudinary?**
 
-```text
-/uploads/documents
-```
+* Offloads storage from backend
+* Scales independently
+* Provides reliable file access
 
 ---
 
-## File Naming
+# 3. System Design Highlights
 
-Files receive unique names.
+## Asynchronous Processing
 
-Example:
-
-```text
-1717770000-123456789-document.pdf
-```
+* Upload is non-blocking
+* Improves API responsiveness
+* Enables background scaling
 
 ---
 
-## Allowed File Types
+## Chunk-Based Architecture
 
-```text
-application/pdf
-```
+* Core for AI features
+* Enables:
+
+  * Semantic retrieval
+  * Embedding pipelines
+  * Context-aware generation
 
 ---
 
-## Maximum File Size
+## Ownership Enforcement
 
 ```javascript
-10 * 1024 * 1024
+{ _id: id, userId: req.user.id }
 ```
 
-Maximum:
-
-```text
-10 MB
-```
+Prevents cross-user data access.
 
 ---
 
-## Invalid File Type
+## Aggregation-Driven Insights
 
-Response
-
-```json
-{
-  "message": "Only PDF files are allowed"
-}
-```
+* Computes flashcard/quiz counts in DB layer
+* Avoids multiple queries
+* Improves performance
 
 ---
 
-# Cloudinary Integration
+
+# 4. Flashcard Management Module
 
 ## Purpose
 
-Stores uploaded PDFs outside the application server.
+The Flashcard Module provides a structured learning system built on top of processed documents.
 
-Benefits:
+After a document has been uploaded and transformed into AI-ready chunks, flashcards can be generated and stored for active recall learning.
 
-* Persistent storage
-* Scalability
-* Reduced server disk usage
+The module supports:
+
+* Flashcard retrieval
+* Flashcard set management
+* Review tracking
+* Learning analytics
+* Starred flashcards
+* Flashcard deletion
 
 ---
 
-## Upload Method
+# Architecture
+
+```text
+PDF Upload
+     │
+     ▼
+Text Extraction
+     │
+     ▼
+Chunk Generation
+     │
+     ▼
+Flashcard Generation
+     │
+     ▼
+Flashcard Storage
+     │
+     ▼
+Review / Learning
+```
+
+---
+
+# Flashcard Schema
+
+## Collection
 
 ```javascript
-cloudinary.uploader.upload(
-    filePath,
+flashcards
+```
+
+---
+
+## Schema Structure
+
+```javascript
+{
+  userId: ObjectId,
+
+  documentId: ObjectId,
+
+  cards: [
     {
-        folder: "documents",
-        resource_type: "raw"
+      question: String,
+
+      answer: String,
+
+      difficulty: String,
+
+      lastReviewed: Date,
+
+      reviewCount: Number
     }
-)
+  ]
+}
 ```
 
 ---
 
-## Stored Value
+## Field Definitions
+
+### userId
+
+References the owner of the flashcard set.
 
 ```javascript
-filePath
+{
+  type: ObjectId,
+  ref: "User"
+}
 ```
+
+---
+
+### documentId
+
+Links flashcards to a specific uploaded document.
+
+```javascript
+{
+  type: ObjectId,
+  ref: "Document"
+}
+```
+
+---
+
+### cards
+
+Stores individual flashcards.
+
+Each card contains:
+
+```javascript
+{
+  question,
+  answer,
+  difficulty,
+  lastReviewed,
+  reviewCount
+}
+```
+
+---
+
+### question
+
+Question displayed to the learner.
 
 Example:
 
 ```text
-https://res.cloudinary.com/project/raw/upload/document.pdf
+What is a Closure in JavaScript?
 ```
 
 ---
 
-# Get All Documents
+### answer
+
+Expected answer.
+
+Example:
+
+```text
+A closure is a function that retains access
+to variables from its lexical scope.
+```
+
+---
+
+### difficulty
+
+Difficulty level assigned to the card.
+
+Allowed values:
+
+```text
+easy
+medium
+hard
+```
+
+Default:
+
+```text
+medium
+```
+
+---
+
+### lastReviewed
+
+Tracks when a card was last studied.
+
+Example:
+
+```javascript
+2026-07-12T14:30:00.000Z
+```
+
+---
+
+### reviewCount
+
+Tracks total review attempts.
+
+Example:
+
+```javascript
+15
+```
+
+---
+
+# Database Indexing
+
+```javascript
+flashCardSchema.index({
+  userId: 1,
+  documentId: 1
+});
+```
+
+Purpose:
+
+* Faster document flashcard lookups
+* Faster user-based filtering
+* Reduced query execution time
+
+---
+
+# Route Structure
+
+```text
+/api/flashcards
+
+GET     /
+GET     /:id
+POST    /:cardId/review
+PUT     /:cardId/star
+DELETE  /:id
+```
+
+All routes require authentication.
+
+---
+
+# Get All Flashcard Sets
 
 ## Route
 
 ```http
-GET /api/document
+GET /api/flashcards
 ```
 
 ---
@@ -1400,41 +973,27 @@ GET /api/document
 Required
 
 ```http
-Authorization: Bearer <token>
+Authentication: Required (JWT HttpOnly Cookie)
 ```
 
 ---
 
 ## Purpose
 
-Returns all documents belonging to the authenticated user.
+Returns all flashcard sets belonging to the authenticated user.
 
 ---
 
-## Aggregation Pipeline
+## Additional Data
 
-Uses:
+Document information is populated.
 
 ```javascript
-$match
-$lookup
-$lookup
-$addFields
-$project
-$sort
+.populate(
+  "documentId",
+  "title"
+)
 ```
-
----
-
-## Additional Computed Fields
-
-### flashcardCount
-
-Number of flashcard sets linked to document.
-
-### quizCount
-
-Number of quizzes linked to document.
 
 ---
 
@@ -1443,63 +1002,55 @@ Number of quizzes linked to document.
 ```json
 {
   "success": true,
-  "count": 2,
+  "message": "flashCardSets fetched successfully",
   "data": [
     {
-      "_id": "685f123",
-      "title": "JavaScript Notes",
-      "status": "ready",
-      "flashcardCount": 12,
-      "quizCount": 4
+      "_id": "687abc123",
+      "documentId": {
+        "_id": "687doc123",
+        "title": "JavaScript Notes"
+      },
+      "cards": []
     }
-  ],
-  "message": "Documents fetched successfully"
+  ]
 }
 ```
 
 ---
 
-# Get Document
+# Get Flashcards By Document
 
 ## Route
 
 ```http
-GET /api/document/:id
+GET /api/flashcards/:id
 ```
-
----
-
-## Purpose
-
-Returns a single document.
 
 ---
 
 ## Parameters
 
-| Parameter | Type             |
-| --------- | ---------------- |
-| id        | MongoDB ObjectId |
+| Parameter | Type              |
+| --------- | ----------------- |
+| id        | Document ObjectId |
 
 ---
 
-## Additional Operations
+## Purpose
 
-Updates:
-
-```javascript
-lastAccessed
-```
-
-every time the document is viewed.
+Returns all flashcards associated with a specific document.
 
 ---
 
-## Additional Fields Returned
+## Additional Data
+
+Document metadata is populated.
 
 ```javascript
-flashcardCount
-quizCount
+.populate(
+  "documentId",
+  "title fileName"
+)
 ```
 
 ---
@@ -1509,12 +1060,22 @@ quizCount
 ```json
 {
   "success": true,
+  "message": "flashCards fetched successfully",
   "data": {
-    "_id": "685f123",
-    "title": "JavaScript Notes",
-    "status": "ready",
-    "flashcardCount": 12,
-    "quizCount": 4
+    "_id": "687abc123",
+    "documentId": {
+      "_id": "687doc123",
+      "title": "JavaScript Notes",
+      "fileName": "javascript.pdf"
+    },
+    "cards": [
+      {
+        "question": "What is a closure?",
+        "answer": "A function with access to its lexical scope.",
+        "difficulty": "medium",
+        "reviewCount": 3
+      }
+    ]
   }
 }
 ```
@@ -1526,43 +1087,187 @@ quizCount
 ```json
 {
   "success": false,
-  "message": "Document not found"
+  "message": "Please provide Id"
 }
 ```
 
 ---
 
-# Delete Document
+# Review Flashcard
 
 ## Route
 
 ```http
-DELETE /api/document/:id
+POST /api/flashcards/:cardId/review
 ```
 
 ---
 
 ## Purpose
 
-Deletes a document owned by the authenticated user.
+Marks a flashcard as reviewed.
 
 ---
 
-## Deletion Flow
+## Internal Operations
 
+Updates:
+
+```javascript
+lastReviewed
+```
+
+and
+
+```javascript
+reviewCount
+```
+
+---
+
+## Processing Flow
 
 ```text
+Find Flashcard
+      │
+      ▼
+Find Card
+      │
+      ▼
+Update Review Date
+      │
+      ▼
+Increment Review Count
+      │
+      ▼
+Save Changes
+```
 
-Validate Document
+---
+
+## Example Update
+
+Before:
+
+```json
+{
+  "reviewCount": 5
+}
+```
+
+After:
+
+```json
+{
+  "reviewCount": 6
+}
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "message": "FlashCard reviewed successfully"
+}
+```
+
+---
+
+# Star / Unstar Flashcard
+
+## Route
+
+```http
+PUT /api/flashcards/:cardId/star
+```
+
+---
+
+## Purpose
+
+Allows users to bookmark important flashcards.
+
+---
+
+## Behavior
+
+If card is not starred:
+
+```text
+false → true
+```
+
+If card is starred:
+
+```text
+true → false
+```
+
+---
+
+## Processing Flow
+
+```text
+Locate Card
+     │
+     ▼
+Toggle Star State
+     │
+     ▼
+Persist Changes
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "message": "FlashCard started"
+}
+```
+
+or
+
+```json
+{
+  "success": true,
+  "message": "FlashCard unstarted"
+}
+```
+
+---
+
+# Delete Flashcard Set
+
+## Route
+
+```http
+DELETE /api/flashcards/:id
+```
+
+---
+
+## Purpose
+
+Deletes an entire flashcard collection associated with a document.
+
+---
+
+## Processing Flow
+
+```text
+Validate Ownership
         │
         ▼
-Verify Ownership
+Locate Flashcard Set
         │
         ▼
-Delete Cloudinary Asset
-        │
-        ▼
-Delete MongoDB Document
+Delete Record
         │
         ▼
 Return Success
@@ -1575,7 +1280,7 @@ Return Success
 ```json
 {
   "success": true,
-  "message": "Document deleted successfully"
+  "message": "FlashCard set deleted successfully"
 }
 ```
 
@@ -1586,90 +1291,907 @@ Return Success
 ```json
 {
   "success": false,
-  "message": "Document not found"
+  "message": "FlashCard Set not found"
 }
 ```
 
 ---
 
-# Security Measures
+# Learning Analytics
 
-## Authentication
+The module tracks user learning activity through:
 
-All document routes are protected using JWT middleware.
-
----
-
-## Ownership Validation
-
-Documents are always queried using:
+## Review Count
 
 ```javascript
-{
-  _id: id,
-  userId: req.user.id
-}
+reviewCount
 ```
 
-This prevents users from accessing another user's documents.
+Used to determine:
+
+* Study frequency
+* Learning progress
+* Most reviewed topics
 
 ---
 
-## File Validation
+## Last Reviewed
 
-Only PDF files are accepted.
-
----
-
-## Upload Limits
-
-Maximum file size:
-
-```text
-10 MB
+```javascript
+lastReviewed
 ```
 
----
+Used to determine:
 
-## Temporary File Cleanup
-
-Temporary files are automatically deleted after upload and processing.
+* Recently studied cards
+* Review schedules
+* Future spaced repetition support
 
 ---
 
 # Design Decisions
 
-### Cloudinary Storage
+## Document-Centric Organization
 
-Prevents long-term storage on the application server.
+Flashcards are grouped by document.
 
-### Background Processing
+Benefits:
 
-PDF parsing runs asynchronously after upload.
-
-Improves upload response time.
-
-### Chunk-Based Storage
-
-Documents are stored as chunks to support:
-
-* RAG pipelines
-* Semantic search
-* Flashcard generation
-* Quiz generation
-* AI interview preparation
-
-### Aggregation Pipeline
-
-Computes flashcard and quiz statistics efficiently in a single query.
+* Easier management
+* Better organization
+* Supports document-level analytics
 
 ---
 
-# Future Improvements
+## Embedded Card Storage
 
-* Vector embeddings
-* Semantic search
-* Virus scanning
-* Multi-file uploads
+Cards are stored inside a Flashcard document.
+
+Benefits:
+
+* Faster retrieval
+* Fewer joins
+* Simpler updates
 
 ---
+
+## Review Tracking
+
+Review history is stored per card.
+
+Benefits:
+
+* Progress measurement
+* Learning analytics
+* Future spaced repetition implementation
+
+---
+
+# 5. AI Learning & RAG Module
+
+## Purpose
+
+The AI Module transforms uploaded documents into interactive learning experiences using Google's Gemini models.
+
+It provides:
+
+* AI-generated Flashcards
+* AI-generated Quizzes
+* AI-generated Summaries
+* Context-aware Document Chat
+* Concept Explanations
+* Chat History Tracking
+* Lightweight Retrieval-Augmented Generation (RAG)
+
+---
+
+# Architecture
+
+```text
+User Uploads PDF
+        │
+        ▼
+Text Extraction
+        │
+        ▼
+Chunk Generation
+        │
+        ▼
+Document Storage
+        │
+        ▼
+AI Services
+        │
+ ┌──────┼─────────────┬─────────────┬─────────────┐
+ ▼      ▼             ▼             ▼             ▼
+Flashcards  Quiz   Summary   Document Chat   Explain Concept
+```
+
+---
+
+# AI Provider
+
+## Gemini Integration
+
+The system uses Google Gemini through the official SDK.
+
+```javascript
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY
+});
+```
+
+---
+
+## Used Model
+
+```javascript
+gemini-2.5-flash
+```
+
+# Route Structure
+
+```text
+/api/ai
+
+POST /generate-flashcards
+POST /generate-quiz
+POST /generate-summary
+POST /chat
+POST /explain-concept
+GET  /chat-history/:documentId
+```
+
+All routes require authentication.
+
+---
+
+# Retrieval-Augmented Generation (RAG)
+
+## Purpose
+
+Instead of sending an entire document to the LLM, the system retrieves the most relevant document chunks before generation.
+
+This improves:
+
+* Accuracy
+* Context awareness
+* Token efficiency
+* Response quality
+
+---
+
+## Retrieval Pipeline
+
+```text
+User Question
+      │
+      ▼
+Keyword Extraction
+      │
+      ▼
+Chunk Scoring
+      │
+      ▼
+Top Relevant Chunks
+      │
+      ▼
+Gemini Prompt
+      │
+      ▼
+AI Response
+```
+
+---
+
+# Relevant Chunk Search
+
+## Utility
+
+```javascript
+findRelevantChunks()
+```
+
+---
+
+## Scoring Strategy
+
+The retrieval system uses:
+
+### Exact Match Scoring
+
+```text
+Higher Weight
+```
+
+Exact keyword matches receive the highest score.
+
+---
+
+### Partial Match Scoring
+
+```text
+Lower Weight
+```
+
+Partial keyword matches receive lower scores.
+
+---
+
+### Multi-Keyword Bonus
+
+Chunks matching multiple query terms receive additional scoring.
+
+---
+
+### Length Normalization
+
+Long chunks are normalized to avoid unfair scoring.
+
+---
+
+### Position Bonus
+
+Earlier chunks receive a slight priority boost.
+
+---
+
+## Stop Word Removal
+
+Common words are ignored.
+
+Examples:
+
+```text
+the
+is
+at
+which
+on
+a
+an
+and
+or
+but
+```
+
+This improves retrieval relevance.
+
+---
+
+# Document Chat
+
+## Route
+
+```http
+POST /api/ai/chat
+```
+
+---
+
+## Purpose
+
+Allows users to ask questions about an uploaded document.
+
+---
+
+## Request Body
+
+```json
+{
+  "documentId": "687abc123",
+  "question": "What is a closure?"
+}
+```
+
+---
+
+## Processing Flow
+
+```text
+User Question
+      │
+      ▼
+Retrieve Relevant Chunks
+      │
+      ▼
+Build Context
+      │
+      ▼
+Gemini Generation
+      │
+      ▼
+Store Chat History
+      │
+      ▼
+Return Response
+```
+
+---
+
+## Prompt Structure
+
+```text
+Context
++
+Question
++
+Answer Instruction
+```
+
+Gemini is instructed to answer only from the provided context.
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "answer": "A closure is a function..."
+  }
+}
+```
+
+---
+
+# Explain Concept
+
+## Route
+
+```http
+POST /api/ai/explain-concept
+```
+
+---
+
+## Purpose
+
+Provides educational explanations for concepts found within a document.
+
+---
+
+## Request Body
+
+```json
+{
+  "documentId": "687abc123",
+  "concept": "Closures"
+}
+```
+
+---
+
+## Processing Flow
+
+```text
+Locate Document
+       │
+       ▼
+Extract Context
+       │
+       ▼
+Generate Explanation
+       │
+       ▼
+Return Educational Response
+```
+
+---
+
+## Prompt Features
+
+The model is instructed to:
+
+* Explain clearly
+* Use simple language
+* Include examples
+* Stay grounded in document context
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "explanation": "Closures allow functions..."
+  }
+}
+```
+
+---
+
+# AI Summary Generation
+
+## Route
+
+```http
+POST /api/ai/generate-summary
+```
+
+---
+
+## Purpose
+
+Creates concise summaries from uploaded documents.
+
+---
+
+## Request Body
+
+```json
+{
+  "documentId": "687abc123"
+}
+```
+
+---
+
+## Processing Flow
+
+```text
+Extract Text
+      │
+      ▼
+Build Prompt
+      │
+      ▼
+Gemini Summary
+      │
+      ▼
+Return Summary
+```
+
+---
+
+## Prompt Goals
+
+The summary focuses on:
+
+* Main ideas
+* Key concepts
+* Important takeaways
+* Structured learning content
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "summary": "JavaScript closures are..."
+  }
+}
+```
+
+---
+
+# AI Flashcard Generation
+
+## Route
+
+```http
+POST /api/ai/generate-flashcards
+```
+
+---
+
+## Purpose
+
+Automatically creates study flashcards from document content.
+
+---
+
+## Request Body
+
+```json
+{
+  "documentId": "687abc123",
+  "count": 10
+}
+```
+
+---
+
+## Flashcard Format
+
+Gemini is instructed to generate:
+
+```text
+Q: Question
+A: Answer
+D: Difficulty
+```
+
+---
+
+## Generated Structure
+
+```javascript
+{
+  question,
+  answer,
+  difficulty
+}
+```
+
+---
+
+## Difficulty Levels
+
+```text
+easy
+medium
+hard
+```
+
+---
+
+## Processing Flow
+
+```text
+Extract Text
+      │
+      ▼
+Generate Flashcards
+      │
+      ▼
+Parse AI Output
+      │
+      ▼
+Store Flashcards
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "question": "What is a closure?",
+      "answer": "A closure is...",
+      "difficulty": "medium"
+    }
+  ]
+}
+```
+
+---
+
+# AI Quiz Generation
+
+## Route
+
+```http
+POST /api/ai/generate-quiz
+```
+
+---
+
+## Purpose
+
+Creates multiple-choice quizzes from uploaded documents.
+
+---
+
+## Request Body
+
+```json
+{
+  "documentId": "687abc123",
+  "numQuestions": 5
+}
+```
+
+---
+
+## Quiz Format
+
+Gemini generates:
+
+```text
+Q: Question
+O1: Option 1
+O2: Option 2
+O3: Option 3
+O4: Option 4
+C: Correct Answer
+E: Explanation
+D: Difficulty
+```
+
+---
+
+## Generated Structure
+
+```javascript
+{
+  question,
+  options,
+  correctAnswer,
+  explanation,
+  difficulty
+}
+```
+
+---
+
+## Processing Flow
+
+```text
+Extract Text
+      │
+      ▼
+Generate Questions
+      │
+      ▼
+Parse Response
+      │
+      ▼
+Store Quiz
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "questions": [
+      {
+        "question": "What is a closure?",
+        "options": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "correctAnswer": "A",
+        "difficulty": "medium"
+      }
+    ]
+  }
+}
+```
+
+---
+
+# Chat History Management
+
+## Purpose
+
+Maintains conversational context between users and documents.
+
+---
+
+# Chat History Schema
+
+```javascript
+{
+  userId: ObjectId,
+
+  documentId: ObjectId,
+
+  messages: [
+    {
+      role,
+      content,
+      timestamp,
+      relevantChunks
+    }
+  ]
+}
+```
+
+---
+
+## Message Structure
+
+```javascript
+{
+  role: "user" | "assistant",
+
+  content: String,
+
+  timestamp: Date,
+
+  relevantChunks: [Number]
+}
+```
+
+---
+
+## Database Index
+
+```javascript
+chatHistorySchema.index({
+  userId: 1,
+  documentId: 1
+});
+```
+
+Purpose:
+
+* Faster chat retrieval
+* Efficient document conversations
+* User isolation
+
+---
+
+## Get Chat History
+
+### Route
+
+```http
+GET /api/ai/chat-history/:documentId
+```
+
+---
+
+## Purpose
+
+Returns previous conversations for a specific document.
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is a closure?"
+      },
+      {
+        "role": "assistant",
+        "content": "A closure is..."
+      }
+    ]
+  }
+}
+```
+
+---
+
+# Quiz Schema
+
+## Collection
+
+```javascript
+quizzes
+```
+
+---
+
+## Schema Structure
+
+```javascript
+{
+  userId: ObjectId,
+
+  documentId: ObjectId,
+
+  title: String,
+
+  questions: [],
+
+  userAnswers: [],
+
+  score: Number,
+
+  totalQuestions: Number,
+
+  completedAt: Date
+}
+```
+
+---
+
+## Stored Analytics
+
+### User Answers
+
+Tracks:
+
+* Selected answer
+* Correctness
+* Timestamp
+
+---
+
+### Score
+
+Tracks:
+
+```javascript
+score
+```
+
+for completed quizzes.
+
+---
+
+### Completion Date
+
+Tracks:
+
+```javascript
+completedAt
+```
+
+for learning progress analytics.
+
+---
+
+# AI Design Decisions
+
+## Prompt Engineering
+
+Structured prompt formats are used to ensure predictable AI responses.
+
+Benefits:
+
+* Easier parsing
+* Consistent output
+* Reduced hallucinations
+
+---
+
+## Context Limiting
+
+Document content is truncated before sending to Gemini.
+
+Examples:
+
+```javascript
+text.substring(0, 15000)
+text.substring(0, 20000)
+text.substring(0, 10000)
+```
+
+Benefits:
+
+* Lower token usage
+* Faster responses
+* Predictable costs
+
+---
+
+## Retrieval Before Generation
+
+The system retrieves relevant chunks before generation.
+
+Benefits:
+
+* Better answer quality
+* Reduced hallucinations
+* Improved contextual accuracy
+
+---
+
+## Chat History Persistence
+
+Conversations are stored in MongoDB.
+
+Benefits:
+
+* Persistent conversations
+* Future memory support
+* Personalized learning experiences
+
+---
+
+
