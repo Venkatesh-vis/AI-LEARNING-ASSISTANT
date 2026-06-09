@@ -1,3 +1,35 @@
+# API Documentation
+
+Complete API documentation with request examples, response structures, authentication requirements, validation rules, and error handling is available through the published Postman collection.
+
+## Postman Documentation
+
+[View Complete API Documentation](https://documenter.getpostman.com/view/34410391/2sBXwqsBMz)
+
+### Covered Modules
+
+* Authentication APIs
+* Document APIs
+* Flashcard APIs
+* AI Learning APIs
+* Quiz APIs
+* Dashboard & Analytics APIs
+
+### Includes
+
+* Request Parameters
+* Request Bodies
+* Path Parameters
+* Query Parameters
+* Success Responses
+* Error Responses
+* Authentication Requirements
+* Validation Rules
+* Endpoint Examples
+* Testing Examples
+
+---
+
 
 # 1. Authentication System
 
@@ -2870,3 +2902,213 @@ All quiz operations are scoped using:
 
 This prevents unauthorized access to other users' quizzes.
 
+---
+# 7. Dashboard & Learning Analytics Module
+
+## Purpose
+
+The Dashboard Module provides a consolidated view of user learning activity across documents, flashcards, and quizzes.
+
+It aggregates learning metrics and recent activity into a single endpoint, enabling users to track progress and engagement.
+
+The module provides:
+
+* Total uploaded documents
+* Total flashcard sets
+* Total flashcards
+* Reviewed flashcards
+* Starred flashcards
+* Total quizzes
+* Completed quizzes
+* Average quiz score
+* Recent documents
+* Recent quizzes
+
+---
+
+# Route Structure
+
+```text
+/api/dashboard
+
+GET /
+```
+
+Authentication Required:
+
+```text
+JWT HttpOnly Cookie
+```
+
+---
+
+# Get Dashboard
+
+## Route
+
+```http
+GET /api/dashboard
+```
+
+---
+
+## Purpose
+
+Returns a complete learning overview for the authenticated user.
+
+---
+
+## Processing Flow
+
+```text
+Load User
+      │
+      ▼
+
+Count Documents
+      │
+      ▼
+
+Count Flashcards
+      │
+      ▼
+
+Count Quizzes
+      │
+      ▼
+
+Calculate Analytics
+      │
+      ▼
+
+Load Recent Activity
+      │
+      ▼
+
+Return Dashboard Data
+```
+
+---
+
+## Calculated Metrics
+
+### Document Metrics
+
+```javascript
+totalDocuments
+```
+
+Tracks total uploaded documents.
+
+---
+
+### Flashcard Metrics
+
+```javascript
+totalFlashCardSets
+totalFlashCards
+reviewedFlashCards
+starredFlashCards
+```
+
+Tracks learning engagement.
+
+---
+
+### Quiz Metrics
+
+```javascript
+totalQuizzes
+completedQuizzes
+averageScore
+```
+
+Tracks assessment performance.
+
+---
+
+## Recent Activity
+
+### Recent Documents
+
+Returns:
+
+```javascript
+title
+fileName
+lastAccessed
+status
+```
+
+---
+
+### Recent Quizzes
+
+Returns:
+
+```javascript
+title
+score
+totalQuestions
+completedAt
+```
+
+---
+
+## Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "overview": {
+      "totalDocuments": 12,
+      "totalFlashCardSets": 8,
+      "totalFlashCards": 150,
+      "reviewedFlashCards": 90,
+      "starredFlashCards": 25,
+      "averageScore": 82,
+      "totalQuizzes": 15,
+      "completedQuizzes": 12
+    },
+    "recentActivity": {
+      "documents": [],
+      "quizzes": []
+    }
+  }
+}
+```
+
+---
+
+# Dashboard Design Decisions
+
+## Aggregation-Based Analytics
+
+Metrics are calculated dynamically from source collections.
+
+Benefits:
+
+* No duplicate data
+* Real-time statistics
+* Consistent analytics
+
+---
+
+## Centralized Learning Insights
+
+Dashboard combines:
+
+* Documents
+* Flashcards
+* Quizzes
+
+into a single response.
+
+Benefits:
+
+* Reduced API calls
+* Faster dashboard rendering
+* Better user experience
+
+---

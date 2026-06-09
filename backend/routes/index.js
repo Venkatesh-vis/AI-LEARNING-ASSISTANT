@@ -6,12 +6,14 @@ import authRoutes from "./authRoutes.js";
 import documentRoutes from "./documentRoutes.js";
 import flashcardRoutes from "./flashcardRoutes.js";
 import quizRoutes from "./quizRoutes.js";
-import aiRoutes from "./aiRoutesr.js";
+import aiRoutes from "./aiRoutes.js";
+import progressRoutes from "./progressRoutes.js";
 
 router.use('/auth', authRoutes);
 router.use("/document", auth, documentRoutes);
 router.use("/flashcards", auth, flashcardRoutes);
 router.use("/quizzes", auth, quizRoutes);
+router.use("/progress", auth, progressRoutes);
 router.use("/ai", auth, aiRoutes);
 
 export default router;

@@ -563,7 +563,10 @@ Benefits:
 * Quiz Result Analytics
 * Chat History Tracking
 * Ownership-Based Access Control
-* Learning Progress Tracking
+* Learning Analytics Dashboard
+* Progress Tracking
+* Average Quiz Score Analytics
+* Recent Learning Activity
 
 ```
 ```
