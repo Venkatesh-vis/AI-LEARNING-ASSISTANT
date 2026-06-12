@@ -40,7 +40,7 @@ export const getDashboard = async (req, res, next) => {
 
 
         return res.status(200).json({
-            succes: true,
+            success: true,
             data: {
                 overview: {
                     totalDocuments,
@@ -56,7 +56,8 @@ export const getDashboard = async (req, res, next) => {
                     documents: recentDocuments,
                     quizzes: recentQuizzes,
                 }
-            }
+            },
+            message: "successfully fetched dashboard stats"
         })
     }
     catch (err) {

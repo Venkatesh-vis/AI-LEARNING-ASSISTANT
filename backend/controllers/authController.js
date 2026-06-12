@@ -127,14 +127,16 @@ export const getProfile = async(req, res, next) => {
         return res.status(200).json({
             success:true,
             data: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                profilePicture: user.profilePicture,
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt,
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    profilePicture: user.profilePicture,
+                    createdAt: user.createdAt,
+                    updatedAt: user.updatedAt,
+                }
             },
-
+            message: "User profile fetched successfully"
         })
     }
     catch(err) {
@@ -158,11 +160,12 @@ export const updateProfile = async(req, res, next) => {
         return res.status(200).json({
             success: true,
             data: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                profilePicture: user.profilePicture 
-
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    profilePicture: user.profilePicture
+                }
             },
             message: "Profile updated successfully",
 });
@@ -212,3 +215,31 @@ export const changePassword = async(req, res, next) => {
     }
 }
 
+export const checkAuth = async(req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success:false,
+                message: "User not found"
+            })
+        }
+        return res.status(200).json({
+            success:true,
+            data: {
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    profilePicture: user.profilePicture,
+                    createdAt: user.createdAt,
+                }
+            },
+            message: "Authenticated"
+        });
+    }
+    catch(err) {
+        next(err);
+    }
+}

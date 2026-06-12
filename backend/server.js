@@ -20,7 +20,7 @@ const app = express();
 connectDB();
 
 app.use(cors({
-    origin: prod === 'Production' ? process.env.ORIGIN : 'http://localhost:3000',
+    origin: prod === 'Production' ? process.env.ORIGIN : 'http://localhost:3000',credentials: true,
 }));
 app.use(helmet());
 app.use(express.urlencoded({extended: true}));
