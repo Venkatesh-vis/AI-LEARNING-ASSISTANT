@@ -1,5 +1,5 @@
 import { requestWithRetry } from "../../api/apiRequest";
-import type {ChatMessage,AskQuestionRequest,AskQuestionResponse,GenerateSummaryRequest,Summary,ExplainConceptRequest,ConceptExplanation,GenerateQuizRequest,Quiz,GenerateFlashcardsRequest,FlashcardSet,} from "./aiTypes";
+import type {ChatMessage,AskQuestionRequest,AskQuestionResponse,GenerateSummaryRequest,Summary,ExplainConceptRequest,ConceptExplanation,GenerateQuizRequest,Quiz,GenerateFlashcardsRequest,FlashcardSet, DeleteFlashcardsResponse,} from "./aiTypes";
 
 /* =========================
    CHAT
@@ -75,3 +75,62 @@ export const generateFlashcardsService = (
     data: payload,
   });
 };
+
+export const getFlashcardSetsService =
+  () => {
+    return requestWithRetry<
+      FlashcardSet[]
+    >({
+      url: "/flashcards",
+      method: "GET",
+    });
+  };
+
+export const getFlashcardSetService =
+  (
+    documentId: string,
+    setId: string
+  ) => {
+    return requestWithRetry<
+      FlashcardSet
+    >({
+      url: `/flashcards/${documentId}/${setId}`,
+      method: "GET",
+    });
+  };
+
+export const reviewFlashcardService =
+  (
+    cardId: string
+  ) => {
+    return requestWithRetry<
+      FlashcardSet
+    >({
+      url: `/flashcards/${cardId}/review`,
+      method: "POST",
+    });
+  };
+
+export const toggleFlashcardStarService =
+  (
+    cardId: string
+  ) => {
+    return requestWithRetry<
+      FlashcardSet
+    >({
+      url: `/flashcards/${cardId}/star`,
+      method: "PUT",
+    });
+  };
+
+export const deleteFlashcardsService =
+  (
+    setId: string
+  ) => {
+    return requestWithRetry<
+      DeleteFlashcardsResponse
+    >({
+      url: `/flashcards/${setId}`,
+      method: "DELETE",
+    });
+  };

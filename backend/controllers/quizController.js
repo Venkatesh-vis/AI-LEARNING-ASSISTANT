@@ -152,7 +152,7 @@ export const getQuizResults = async (req, res, next) => {
                 options: question.options,
                 correctAnswer: question.correctAnswer,
                 selectedAnswer: userAnswer?.selectedAnswer || null,
-                isCorrect: userAnswer.isCorrect || false,
+                isCorrect: userAnswer.isCorrect ?? false,
                 explanation: question.explanation
             }
         });

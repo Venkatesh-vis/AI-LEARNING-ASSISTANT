@@ -64,52 +64,8 @@ export interface SummaryState {
 }
 
 /* =========================
-   QUIZ
-========================= */
-
-export interface GenerateQuizRequest {
-  documentId: string;
-  numQuestions: number;
-  title: string;
-}
-
-export interface QuizQuestion {
-  _id: string;
-  question: string;
-  options: string[];
-  correctAnswer: string;
-  explanation: string;
-  difficulty: "easy" | "medium" | "hard";
-}
-
-export interface Quiz {
-  _id: string;
-  userId: string;
-  documentId: string;
-  title: string;
-  questions: QuizQuestion[];
-  userAnswers: string[];
-  score: number;
-  totalQuestions: number;
-  completedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface QuizState {
-  quiz: Quiz | null;
-  generateQuizLoading: boolean;
-  error: string | null;
-}
-
-/* =========================
    FLASHCARDS
 ========================= */
-
-export interface GenerateFlashcardsRequest {
-  documentId: string;
-  count: number;
-}
 
 export interface Flashcard {
   _id: string;
@@ -121,17 +77,37 @@ export interface Flashcard {
   lastReviewed: string;
 }
 
+export interface FlashcardDocument {
+  _id: string;
+  title: string;
+}
+
 export interface FlashcardSet {
   _id: string;
   userId: string;
-  documentId: string;
+  documentId: FlashcardDocument;
   cards: Flashcard[];
   createdAt: string;
   updatedAt: string;
 }
 
+export interface GenerateFlashcardsRequest {
+  documentId: string;
+  count: number;
+}
+
+export interface DeleteFlashcardsResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface FlashcardState {
-  flashcards: FlashcardSet | null;
+  flashcardSets: FlashcardSet[];
+  getFlashcardSetsLoading: boolean;
+  getFlashcardSetLoading: boolean;
   generateFlashcardsLoading: boolean;
+  reviewFlashcardLoading: boolean;
+  toggleStarLoading: boolean;
+  deleteFlashcardsLoading: boolean;
   error: string | null;
 }

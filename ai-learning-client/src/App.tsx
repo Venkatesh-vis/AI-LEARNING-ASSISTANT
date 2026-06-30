@@ -15,17 +15,18 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { checkAuth } from "./features/auth/authThunk";
 import { useAppDispatch, useAppSelector } from "./features/hooks/reduxHooks";
 import Spinner from "./components/shared/Spinner";
+import QuizResultPage from "./pages/Quizzes/QuizResultPage";
 
 function App() {
   const dispatch = useAppDispatch();
 
-  const { isAuthenticated, loading, } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, checkAuthLoading, } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
 
-  if (loading) {
+  if (checkAuthLoading) {
     return (
       <Spinner/>
     );
@@ -49,7 +50,7 @@ function App() {
           <Route path="/flashcards" element={<FlashCardListPage />} />
           <Route path="/flashcards/:id" element={<FlashCardPage />} />
           <Route path="/quizzes/:id" element={<QuizTakePage />} />
-          <Route path="/quizzes/:id/results" element={<QuizTakePage />} />
+          <Route path="/quizzes/:id/results" element={<QuizResultPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
 

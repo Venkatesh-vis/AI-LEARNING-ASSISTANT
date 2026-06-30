@@ -8,12 +8,15 @@ import EmptyDocuments from "../../components/documents/EmptyDocuments";
 import UploadDocumentModal from "../../components/documents/UploadDocumentModal";
 import DocumentCard from "../../components/documents/DocumentCard";
 import { deleteDocumentById, getDocuments, uploadDocument } from "../../features/documents/documentThunk";
+import { setDashboard } from "../../features/dashboard/dashboardSlice";
+import type {Document} from "../../features/documents/documentTypes"
 
 
 const DocumentListPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const {documents,error,getDocumentsLoading,uploadDocumentLoading, deleteDocumentLoading} = useAppSelector((state) => state.document);
+  const { dashboard } = useAppSelector((state) => state.dashboard);
   const [showUpload, setShowUpload] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -25,37 +28,42 @@ const DocumentListPage = () => {
   }
 }, []);
 
-  const handleUpload = async (
-    title: string,
-    file: File
-  ) => {
-    try {
-      await dispatch(
-        uploadDocument({
-          title,
-          file,
-        })
-      ).unwrap();
-
-      setShowUpload(false);
-    } catch {
-      // handled by redux
-    }
-  };  
-
-  const handleDelete = async () => {
-  if (!selectedDocument) {
-    return;
-  }
-
+  const handleUpload = async (title: string,file: File) => {
   try {
-    await dispatch(deleteDocumentById(selectedDocument._id)).unwrap();
-    setShowDelete(false);
-    setSelectedDocument(null);
+    const uploadedDocument = await dispatch(uploadDocument({title,file,})).unwrap();
+
+    if (dashboard) {
+      dispatch(
+        setDashboard({
+          ...dashboard,
+          overview: {
+            ...dashboard.overview,
+            totalDocuments:
+              dashboard.overview.totalDocuments + 1,
+          },
+          recentActivity: {
+            ...dashboard.recentActivity,
+            documents: [
+              {
+                _id: uploadedDocument._id,
+                title: uploadedDocument.title,
+                status: uploadedDocument.status,
+                lastAccessed:
+                  uploadedDocument.lastAccessed,
+              },
+              ...dashboard.recentActivity.documents,
+            ].slice(0, 5),
+          },
+        })
+      );
+    }
+
+    setShowUpload(false);
   } catch {
-    //
+    // handled by redux
   }
-};
+};  
+
 
   if (getDocumentsLoading) {
     return (
@@ -64,6 +72,74 @@ const DocumentListPage = () => {
       </div>
     );
   }
+
+  const handleDocumentClick = (document: Document) => {
+  if (dashboard) {
+    dispatch(
+      setDashboard({
+        ...dashboard,
+
+        recentActivity: {
+          ...dashboard.recentActivity,
+
+          documents: [
+            {
+              _id: document._id,
+              title: document.title,
+              status: document.status,
+              lastAccessed: new Date().toISOString(),
+            },
+            ...dashboard.recentActivity.documents.filter(
+              (d) => d._id !== document._id
+            ),
+          ].slice(0, 5),
+        },
+      })
+    );
+  }
+
+  navigate(`/documents/${document._id}`);
+};
+
+const handleDeleteClick = (
+  document: Document
+) => {
+  setSelectedDocument(document);
+  setShowDelete(true);
+};
+
+const handleDelete = async () => {
+  if (!selectedDocument) return;
+
+  try {
+    await dispatch(
+      deleteDocumentById(selectedDocument._id)
+    ).unwrap();
+
+    if (dashboard) {
+      dispatch(
+        setDashboard({
+          ...dashboard,
+          overview: {
+            ...dashboard.overview,
+            totalDocuments: dashboard.overview.totalDocuments - 1,
+          },
+          recentActivity: {
+            ...dashboard.recentActivity,
+            documents: dashboard.recentActivity.documents.filter((doc) => doc._id !== selectedDocument._id),
+          },
+        })
+      );
+    }
+
+    setShowDelete(false);
+    setSelectedDocument(null);
+  } catch {
+    //
+  }
+};
+
+
 
   return (
     <>
@@ -144,7 +220,7 @@ const DocumentListPage = () => {
           </div>
         )}
 
-        {/* Empty State */}
+        
         {documents?.length === 0 && (
           <EmptyDocuments
             onUpload={() =>
@@ -164,35 +240,18 @@ const DocumentListPage = () => {
               2xl:grid-cols-4
             "
           >
-            {documents.map(
+            {documents?.map(
               (document) => (
                 <DocumentCard
                   key={document._id}
                   id={document._id}
                   title={document.title}
-                  fileSize={
-                    document.fileSize
-                  }
-                  flashcardCount={
-                    document.flashcardCount
-                  }
-                  quizCount={
-                    document.quizCount
-                  }
-                  uploadedDate={
-                    document.uploadedDate
-                  }
-                  onClick={() =>
-                    navigate(
-                      `/documents/${document._id}`
-                    )
-                  }
-                  onDelete={() => {
-                    setSelectedDocument(document);
-                    setShowDelete(
-                      true
-                    );
-                  }}
+                  fileSize={document.fileSize}
+                  flashcardCount={document.flashcardCount}
+                  quizCount={document.quizCount}
+                  uploadedDate={document.uploadedDate}
+                  onClick={() => handleDocumentClick(document)}
+                  onDelete={() => handleDeleteClick(document)}
                 />
               )
             )}
@@ -203,12 +262,8 @@ const DocumentListPage = () => {
       {/* Upload Modal */}
       <UploadDocumentModal
         open={showUpload}
-        loading={
-          uploadDocumentLoading
-        }
-        onClose={() =>
-          setShowUpload(false)
-        }
+        loading={uploadDocumentLoading}
+        onClose={() =>setShowUpload(false)}
         onUpload={handleUpload}
       />
 

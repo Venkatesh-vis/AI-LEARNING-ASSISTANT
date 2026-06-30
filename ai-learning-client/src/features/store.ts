@@ -4,8 +4,8 @@ import dashboardReducer from "../features/dashboard/dashboardSlice";
 import documentReducer from "../features/documents/documentSlice";
 import chatReducer from "../features/ai/chatSlice";
 import summaryReducer from "../features/ai/summarySlice";
-import quizReducer from "../features/ai/quizSlice";
 import flascardReducer from "../features/ai/flashcardSlice";
+import quizReducer from "../features/quiz/quizSlice"
 
 export const store = configureStore({
   reducer: {

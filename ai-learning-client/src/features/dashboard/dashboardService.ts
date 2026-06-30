@@ -1,5 +1,5 @@
 import { requestWithRetry } from "../../api/apiRequest";
-import type { DashboardData } from "./dashboardType";
+import type { DashboardData } from "./dashboardTypes";
 
 export const getDashboardState = () => {
     return requestWithRetry<DashboardData>({

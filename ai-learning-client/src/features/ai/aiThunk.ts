@@ -1,6 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import {getChatHistoryService,askQuestionService,generateSummaryService,explainConceptService,generateQuizService,generateFlashcardsService,} from "./aiService";
-import type {ChatMessage,AskQuestionRequest,AskQuestionResponse,GenerateSummaryRequest,Summary,ExplainConceptRequest,ConceptExplanation,GenerateQuizRequest,Quiz,GenerateFlashcardsRequest,FlashcardSet} from "./aiTypes";
+import {getChatHistoryService,askQuestionService,generateSummaryService,explainConceptService,generateFlashcardsService, getFlashcardSetsService, getFlashcardSetService, reviewFlashcardService, toggleFlashcardStarService, deleteFlashcardsService,} from "./aiService";
+import type {ChatMessage,AskQuestionRequest,AskQuestionResponse,GenerateSummaryRequest,Summary,ExplainConceptRequest,ConceptExplanation,GenerateFlashcardsRequest,FlashcardSet} from "./aiTypes";
 
 /* =========================
    CHAT
@@ -94,34 +94,29 @@ export const explainConcept =
     }
   );
 
-/* =========================
-   QUIZ
-========================= */
-
-export const generateQuiz =
-  createAsyncThunk<
-    Quiz,
-    GenerateQuizRequest,
-    { rejectValue: string }
-  >(
-    "quiz/generate",
-    async (payload, thunkAPI) => {
-      try {
-        return await generateQuizService(
-          payload
-        );
-      } catch (error: any) {
-        return thunkAPI.rejectWithValue(
-          error.response?.data?.message ??
-            "Failed to generate quiz"
-        );
-      }
-    }
-  );
 
 /* =========================
    FLASHCARDS
 ========================= */
+
+export const getFlashcardSets =
+  createAsyncThunk<
+    FlashcardSet[],
+    void,
+    { rejectValue: string }
+  >(
+    "flashcards/getSets",
+    async (_, thunkAPI) => {
+      try {
+        return await getFlashcardSetsService();
+      } catch (error: any) {
+        return thunkAPI.rejectWithValue(
+          error.response?.data?.message ??
+            "Failed to fetch flashcard sets"
+        );
+      }
+    }
+  );
 
 export const generateFlashcards =
   createAsyncThunk<
@@ -139,6 +134,80 @@ export const generateFlashcards =
         return thunkAPI.rejectWithValue(
           error.response?.data?.message ??
             "Failed to generate flashcards"
+        );
+      }
+    }
+  );
+
+export const reviewFlashcard =
+  createAsyncThunk<
+    FlashcardSet,
+    string,
+    { rejectValue: string }
+  >(
+    "flashcards/review",
+    async (
+      cardId,
+      thunkAPI
+    ) => {
+      try {
+        return await reviewFlashcardService(
+          cardId
+        );
+      } catch (error: any) {
+        return thunkAPI.rejectWithValue(
+          error.response?.data?.message ??
+            "Failed to review flashcard"
+        );
+      }
+    }
+  );
+
+export const toggleFlashcardStar =
+  createAsyncThunk<
+    FlashcardSet,
+    string,
+    { rejectValue: string }
+  >(
+    "flashcards/star",
+    async (
+      cardId,
+      thunkAPI
+    ) => {
+      try {
+        return await toggleFlashcardStarService(
+          cardId
+        );
+      } catch (error: any) {
+        return thunkAPI.rejectWithValue(
+          error.response?.data?.message ??
+            "Failed to update flashcard"
+        );
+      }
+    }
+  );
+
+export const deleteFlashcards =
+  createAsyncThunk<
+    string,
+    string,
+    { rejectValue: string }
+  >(
+    "flashcards/delete",
+    async (
+      setId,
+      thunkAPI
+    ) => {
+      try {
+        await deleteFlashcardsService(
+          setId
+        );
+
+        return setId;
+      } catch (error: any) {
+        return thunkAPI.rejectWithValue(
+          error.response?.data?.message ??
+            "Failed to delete flashcards"
         );
       }
     }

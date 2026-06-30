@@ -8,7 +8,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [validationError, setValidationError] = useState<string>("");
-  const { loading, error } = useAppSelector((state) => state.auth);
+  const { loginLoading, loginError } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -249,7 +249,7 @@ const LoginPage = () => {
         </div>
 
         {/* Error Box */}
-        {(validationError || error) && (
+        {(validationError || loginError) && (
           <div
             className="
           mb-6
@@ -264,14 +264,14 @@ const LoginPage = () => {
           text-red-600
         "
           >
-            {validationError || error}
+            {validationError || loginError}
           </div>
         )}
 
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loginLoading}
           className="
           group
           relative
@@ -293,7 +293,7 @@ const LoginPage = () => {
           disabled:cursor-not-allowed
         "
         >
-          {!loading && (
+          {!loginLoading && (
             <span
               className="
               absolute
@@ -311,7 +311,7 @@ const LoginPage = () => {
           )}
 
           <span className="relative z-10 flex items-center gap-2">
-            {loading ? (
+            {loginLoading ? (
               <>
                 <div
                   className="

@@ -35,7 +35,11 @@ export type UserResponse = {
 
 export type AuthState = {
   user: User | null;
-  loading: boolean;
-  error: string | null;
+  registerLoading: boolean;
+  loginLoading: boolean;
+  checkAuthLoading: boolean;
+  registerError: string | null;
+  loginError: string | null;
+  checkAuthError: string | null;
   isAuthenticated: boolean;
 };

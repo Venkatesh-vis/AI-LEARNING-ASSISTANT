@@ -1,233 +1,273 @@
-import Document from '../models/Document.js';
-import Flashcard from '../models/Flashcard.js';
-import Quiz from '../models/Quiz.js';
-import {extractTextFromPdf} from "../utils/pdfParser.js";
-import {chunkText} from "../utils/textChunker.js"
+import Document from "../models/Document.js";
+import Flashcard from "../models/Flashcard.js";
+import Quiz from "../models/Quiz.js";
+import ChatHistory from "../models/ChatHistory.js";
+import { extractTextFromPdf } from "../utils/pdfParser.js";
+import { chunkText } from "../utils/textChunker.js";
 import fs from "fs/promises";
-import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
-import mongoose from 'mongoose';
-
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
+import mongoose from "mongoose";
 
 const processPdf = async (documentId, filePath) => {
-    try {
-        const {text} = await extractTextFromPdf(filePath);
+  try {
+    const { text } = await extractTextFromPdf(filePath);
 
-        //create Chunks
-        const chunks = chunkText(text, 500, 50);
+    //create Chunks
+    const chunks = chunkText(text, 500, 50);
 
-        //upload document
-        await Document.findByIdAndUpdate(documentId, {
-            extractedText: text,
-            chunks: chunks,
-            status: "ready"
-        },{ returnDocument: "after" })
+    //upload document
+    await Document.findByIdAndUpdate(
+      documentId,
+      {
+        extractedText: text,
+        chunks: chunks,
+        status: "ready",
+      },
+      { returnDocument: "after" },
+    );
 
-        console.log(`Document ${documentId} processed successfully`);
+    console.log(`Document ${documentId} processed successfully`);
+  } catch (err) {
+    console.error("Error processing document", err);
 
-    } catch (err) {
-        console.error ("Error processing document", err)
-
-        await Document.findByIdAndUpdate(documentId, {
-            status: "failed"
-        })
-    }
-}
-
+    await Document.findByIdAndUpdate(documentId, {
+      status: "failed",
+    });
+  }
+};
 
 export const uploadDocument = async (req, res, next) => {
-    try{
-        if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: "Please upload pdf file"
-            })
-        }
-
-        const {title} = req.body;
-
-        if (!title) {
-            //deleting uploaded file if no title is provided
-            await fs.unlink(req.file.path).catch(() => {});
-            return res.status(400).json({
-                success: false,
-                message: "Please provide document title"
-            })
-        }
-
-        const localPath = req.file.path;
-        const cloudinaryResult = await uploadToCloudinary(localPath, "documents");       
-
-        //create document record
-        const document = await Document.create({
-            userId: req.user.id,
-            title,
-            fileName: req.file.originalname,
-            filePath: cloudinaryResult.url,
-            cloudinaryPublicId: cloudinaryResult.publicId,
-            fileSize: req.file.size,
-            status: "processing"
-        })
-        
-
-        processPdf(document._id, localPath).catch((error) => {
-            console.error("pdf processing error", error)
-        })
-
-        await fs.unlink(localPath).catch(() => {});
-
-        return res.status(201).json({
-            success: true,
-            data: document,
-            message: "Document uploaded successfully"
-        })
-
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload pdf file",
+      });
     }
-    catch(err) {
-        //cleaning file on error
-        if (req.file) {
-            await fs.unlink(req.file.path).catch(() => {});
-        }
-        next(err)
-    }
-}
 
+    const { title } = req.body;
+
+    if (!title) {
+      //deleting uploaded file if no title is provided
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({
+        success: false,
+        message: "Please provide document title",
+      });
+    }
+
+    const localPath = req.file.path;
+    const cloudinaryResult = await uploadToCloudinary(localPath, "documents");
+
+    //create document record
+    const document = await Document.create({
+      userId: req.user.id,
+      title,
+      fileName: req.file.originalname,
+      filePath: cloudinaryResult.url,
+      cloudinaryPublicId: cloudinaryResult.publicId,
+      fileSize: req.file.size,
+      status: "processing",
+    });
+
+    processPdf(document._id, localPath).catch((error) => {
+      console.error("pdf processing error", error);
+    });
+
+    await fs.unlink(localPath).catch(() => {});
+
+    return res.status(201).json({
+      success: true,
+      data: document,
+      message: "Document uploaded successfully",
+    });
+  } catch (err) {
+    //cleaning file on error
+    if (req.file) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
+    next(err);
+  }
+};
 
 export const getDocuments = async (req, res, next) => {
-    try{
-        const documents = await Document.aggregate([
-            {
-                $match: {userId: new mongoose.Types.ObjectId(req.user.id)}
-            },
-            {
-                $lookup: {
-                    from: 'flashcards',
-                    localField: "_id",
-                    foreignField: "documentId",
-                    as: "flashcardSets"
-                }
-            },
-            {
-                $lookup: {
-                    from: "quizzes",
-                    localField: "_id",
-                    foreignField: "documentId",
-                    as: "quizzes"
-                }
-            },
-            {
-                $addFields: {
-                    flashcardCount: {$size: "$flashcardSets"},
-                    quizCount:  {$size: "$quizzes"}
-                }
-            },
-            {
-                $project: {
-                    extractedText: 0,
-                    chunks: 0,
-                    flashcardSets: 0,
-                    quizzes: 0
-                }
-            },
-            {
-                $sort:{ uploadedDate: -1}
-            }
-        ]);
-        res.status(200).json({
-            success: true,
-            count: documents.length,
-            data: documents,
-            message: "Documents fetched successfully"
-        })
-    }
-    catch(err) {
-        next(err)
-    }
-}
+  try {
+    const documents = await Document.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(req.user.id),
+        },
+      },
+      {
+        $lookup: {
+          from: "flashcards",
+          localField: "_id",
+          foreignField: "documentId",
+          as: "flashcardSets",
+        },
+      },
+      {
+        $lookup: {
+          from: "quizzes",
+          localField: "_id",
+          foreignField: "documentId",
+          as: "quizzes",
+        },
+      },
+      {
+        $addFields: {
+          flashcardCount: { $size: "$flashcardSets" },
+          quizCount: { $size: "$quizzes" },
+        },
+      },
+      {
+        $project: {
+          extractedText: 0,
+          chunks: 0,
+          flashcardSets: 0,
+          quizzes: 0,
+        },
+      },
+      {
+        $sort: { uploadedDate: -1 },
+      },
+    ]);
+    res.status(200).json({
+      success: true,
+      count: documents.length,
+      data: documents,
+      message: "Documents fetched successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const getDocument = async (req, res, next) => {
-    try{
-        const {id} = req.params
+  try {
+    const { id } = req.params;
 
-        if (!id) {
-            return  res.status(400).json({
-                success: false,
-                message: "Document id is required"
-            })
-        }
-
-        const document = await Document.findOne({
-           _id:id,
-           userId: req.user.id,
-        });
-
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: "Document not found"
-            })
-        }
-
-        //get count of flashcards and quizzes
-        const flashcardCount = await Flashcard.countDocuments({ documentId: document._id, userId: req.user.id });
-        const quizCount = await Quiz.countDocuments({ documentId: document._id, userId: req.user.id });
-
-        document.lastAccessed = Date.now();
-        await document.save();
-
-        const documentData = document.toObject();
-        documentData.flashcardCount = flashcardCount;
-        documentData.quizCount = quizCount
-
-        return res.status(200).json({
-            success: true,
-            message: "",
-            data: documentData
-        })
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Document id is required",
+      });
     }
-    catch(err) {
-        next(err)
+
+    const document = await Document.findOne({
+      _id: id,
+      userId: req.user.id,
+    });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document not found",
+      });
     }
-}
+
+    //get count of flashcards and quizzes
+    const flashcardCount = await Flashcard.countDocuments({
+      documentId: document._id,
+      userId: req.user.id,
+    });
+    const quizCount = await Quiz.countDocuments({
+      documentId: document._id,
+      userId: req.user.id,
+    });
+
+    document.lastAccessed = Date.now();
+    await document.save();
+
+    const documentData = document.toObject();
+    documentData.flashcardCount = flashcardCount;
+    documentData.quizCount = quizCount;
+
+    return res.status(200).json({
+      success: true,
+      message: "",
+      data: documentData,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const deleteDocument = async (req, res, next) => {
-    try{
-        const {id} = req.params
 
-        if (!id) {
-            return  res.status(400).json({
-                success: false,
-                message: "Document id is required"
-            })
-        }
-        const document = await Document.findOne({
-            _id: id,
-            userId: req.user.id
-        });
+  const session = await mongoose.startSession();
 
-        if (!document) {
-            return res.status(404).json({
-                success: false,
-                message: "Document not found"
-            })
-        }
+  try {
+    const { id } = req.params;
 
+    let cloudinaryPublicId = null;
 
-        if (document.cloudinaryPublicId) {
-            await deleteFromCloudinary(document.cloudinaryPublicId);
-        }
+    await session.withTransaction(async () => 
+        {
+    
+      const document = await Document.findOne(
+        {
+          _id: id,
+          userId: req.user.id,
+        },
+        null,
+        { session }
+      );
 
+      if (!document) {
+        throw new Error("Document not found");
+      }
 
-        await Document.deleteOne({
-            _id: id,
-            userId: req.user.id
-        });
+      cloudinaryPublicId = document.cloudinaryPublicId;
 
-        return res.status(200).json({
-            success: true,
-            message: "Document deleted successfully"
-        });
+      
+      await Promise.all([
+        ChatHistory.deleteMany(
+          { documentId: id, userId: req.user.id },
+          { session }
+        ),
+        Flashcard.deleteMany(
+          { documentId: id, userId: req.user.id },
+          { session }
+        ),
+        Quiz.deleteMany(
+          { documentId: id, userId: req.user.id },
+          { session }
+        ),
+      ]);
+
+      
+      await Document.deleteOne(
+        { _id: id, userId: req.user.id },
+        { session }
+      );
+    });
+
+    if (cloudinaryPublicId) {
+      try {
+        await deleteFromCloudinary(cloudinaryPublicId);
+      } catch (err) {
+        console.error("Cloudinary deletion failed:", err);
+      }
     }
-    catch(err) {
-        next(err)
+
+    return res.status(200).json({
+      success: true,
+      message: "Document deleted successfully",
+    });
+  } catch (err) {
+    if (err.message === "Document not found") {
+      return res.status(404).json({
+        success: false,
+        message: err.message,
+      });
     }
-}
+
+    return next(err);
+  } finally {
+    await session.endSession();
+  }
+};

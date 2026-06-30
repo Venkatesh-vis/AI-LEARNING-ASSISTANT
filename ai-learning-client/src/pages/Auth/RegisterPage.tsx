@@ -14,20 +14,11 @@ import {
 import { registerUser } from "../../features/auth/authThunk";
 
 const RegisterPage = () => {
-  const [username, setUsername] =
-    useState<string>("");
-  const [email, setEmail] =
-    useState<string>("");
-  const [password, setPassword] =
-    useState<string>("");
-
-  const [validationError, setValidationError] =
-    useState<string>("");
-
-  const { loading, error } = useAppSelector(
-    (state) => state.auth
-  );
-
+  const [username, setUsername] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [validationError, setValidationError] = useState<string>("");
+  const { registerLoading, registerError } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (
@@ -302,7 +293,7 @@ const RegisterPage = () => {
           </div>
 
           {/* Error */}
-          {(validationError || error) && (
+          {(validationError || registerError) && (
             <div
               className="
                 rounded-xl
@@ -316,14 +307,14 @@ const RegisterPage = () => {
                 text-red-600
               "
             >
-              {validationError || error}
+              {validationError || registerError}
             </div>
           )}
 
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={registerLoading}
             className="
               group
               relative
@@ -343,9 +334,10 @@ const RegisterPage = () => {
               duration-300
               disabled:opacity-80
               disabled:cursor-not-allowed
+              cursor-pointer
             "
           >
-            {!loading && (
+            {!registerLoading && (
               <span
                 className="
                   absolute
@@ -363,7 +355,7 @@ const RegisterPage = () => {
             )}
 
             <span className="relative z-10 flex items-center gap-2">
-              {loading ? (
+              {registerLoading ? (
                 <>
                   <div
                     className="

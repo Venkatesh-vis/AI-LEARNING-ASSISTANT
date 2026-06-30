@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-import {getChatHistory,askQuestion,} from "./aiThunk";
-import type {ChatState,} from "./aiTypes";
+import { getChatHistory, askQuestion, } from "./aiThunk";
+import type { ChatState, } from "./aiTypes";
 
 const initialState: ChatState = {
   messages: [],
@@ -51,9 +51,17 @@ const chatSlice = createSlice({
 
       .addCase(
         askQuestion.pending,
-        (state) => {
+        (state, action) => {
           state.sendMessageLoading = true;
           state.error = null;
+
+          state.messages.push({
+            _id: crypto.randomUUID(),
+            role: "user",
+            content: action.meta.arg.question,
+            timestamp: new Date().toISOString(),
+            relevantChunks: [],
+          });
         }
       )
 
@@ -61,23 +69,14 @@ const chatSlice = createSlice({
         askQuestion.fulfilled,
         (state, action) => {
           state.sendMessageLoading = false;
-          state.messages.push(
-            {
-              _id:crypto.randomUUID(),
-              role: "user",
-              content: action.payload.question,
-              timestamp: new Date().toISOString(),
-              relevantChunks: [],
-            },
 
-            {
-              _id:crypto.randomUUID(),
-              role: "assistant",
-              content:action.payload.answer,
-              timestamp:new Date().toISOString(),
-              relevantChunks: action.payload.relevantChunks,
-            }
-          );
+          state.messages.push({
+            _id: crypto.randomUUID(),
+            role: "assistant",
+            content: action.payload.answer,
+            timestamp: new Date().toISOString(),
+            relevantChunks: action.payload.relevantChunks,
+          });
         }
       )
 
@@ -86,8 +85,16 @@ const chatSlice = createSlice({
         (state, action) => {
           state.sendMessageLoading = false;
           state.error = action.payload ?? "Failed to generate response";
+
+          state.messages.push({
+            _id: crypto.randomUUID(),
+            role: "assistant",
+            content: "Sorry, something went wrong. Please try again.",
+            timestamp: new Date().toISOString(),
+            relevantChunks: [],
+          });
         }
-      );
+      )
   },
 });
 

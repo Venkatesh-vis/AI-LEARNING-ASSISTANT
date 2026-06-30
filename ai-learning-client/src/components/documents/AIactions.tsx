@@ -9,7 +9,7 @@ type Props = {documentId: string;};
 
 const AIActions = ({ documentId, }: Props) => {
   const dispatch = useAppDispatch();
-  const { summary, conceptExplanation, generateSummaryLoading, explainConceptLoading, concepts } = useAppSelector((state) => state.summary);
+  const { summary, generateSummaryLoading, explainConceptLoading, concepts } = useAppSelector((state) => state.summary);
   const [concept, setConcept] = useState("");
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showConceptModal, setShowConceptModal] = useState(false);
@@ -30,7 +30,8 @@ const AIActions = ({ documentId, }: Props) => {
     }
 
     setShowSummaryModal(true);
-  };
+  };  
+  
 
   const handleExplainConcept = async () => {
     const value = concept.trim();
@@ -52,6 +53,7 @@ const AIActions = ({ documentId, }: Props) => {
       //
     }
   };
+  
 
   return (
     <>
@@ -130,14 +132,14 @@ const AIActions = ({ documentId, }: Props) => {
       <AIResultModal
         open={showSummaryModal}
         title="Generated Summary"
-        content={selectedExplanation?.explanation ?? ""}
+        content={summary?.summary ?? ""}
         onClose={() => setShowSummaryModal(false)}
       />
 
       <AIResultModal
         open={showConceptModal}
         title="Concept Explanation"
-        content={conceptExplanation?.explanation ?? ""}
+        content={selectedExplanation?.explanation ?? ""}
         onClose={() => setShowConceptModal(false)}
       />
     </>
