@@ -1,4 +1,5 @@
 import {ExternalLink,FileText,Calendar,HardDrive,} from "lucide-react";
+import type {Document} from "../../features/documents/documentTypes"
 
 type ContentProps = {
   document: Document;

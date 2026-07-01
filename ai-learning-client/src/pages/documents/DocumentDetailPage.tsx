@@ -61,6 +61,14 @@ const DocumentDetailPage = () => {
     return <Spinner />;
   }
 
+  if (!document) {
+  return (
+    <div className="py-10 text-center">
+      Document not found.
+    </div>
+  );
+}
+
 
   return (
     <div
@@ -215,25 +223,25 @@ const DocumentDetailPage = () => {
 
           {activeTab === "chat" && (
             <div>
-              <Chat documentId={document?._id} />
+              <Chat documentId={document._id} />
             </div>
           )}
 
           {activeTab === "actions" && (
             <div>
-              <AIActions documentId={document?._id} />
+              <AIActions documentId={document._id} />
             </div>
           )}
 
           {activeTab === "flashcards" && (
             <div>
-              <Flashcards documentId={document?._id} />
+              <Flashcards documentId={document._id} />
             </div>
           )}
 
           {activeTab === "quizzes" && (
             <div>
-              <Quizzes documentId={document?._id}/>
+              <Quizzes documentId={document._id}/>
             </div>
           )}
         </motion.div>

@@ -28,6 +28,14 @@ const DocumentListPage = () => {
   }
 }, []);
 
+if (!documents) {
+  return (
+    <div className="py-10 text-center">
+      Documents not found.
+    </div>
+  )
+}
+
   const handleUpload = async (title: string,file: File) => {
   try {
     const uploadedDocument = await dispatch(uploadDocument({title,file,})).unwrap();

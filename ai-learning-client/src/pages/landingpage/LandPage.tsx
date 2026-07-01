@@ -2,12 +2,12 @@ import Features from "./Features";
 import HowItWorks from "./HowItWorks";
 import DemoSection from "./DemoSection";
 import Testimonials from "./Testimonials";
-import Navbar from "./NavBar";
 import Hero from "./Hero";
 import Stats from "./Stats";
 import FAQ from "./FAQ";
 import CTA from "./CTA";
 import Footer from "./Footer";
+import Navbar from "./Navbar";
 
 
 const LandingPage = () => {

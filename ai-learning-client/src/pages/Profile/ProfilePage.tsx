@@ -2,7 +2,6 @@ import {
   User,
   Mail,
   CalendarDays,
-  ShieldCheck,
 } from "lucide-react";
 import { useAppSelector } from "../../features/hooks/reduxHooks";
 
@@ -306,17 +305,12 @@ export default function ProfilePage() {
                   text-slate-900
                 "
               >
-                {user.createdAt
-                  ? new Date(
-                      user.createdAt
-                    ).toLocaleDateString(
-                      undefined,
-                      {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      }
-                    )
+                {user.createdAt != null
+                  ? new Date(user.createdAt).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
                   : "-"}
               </p>
             </div>

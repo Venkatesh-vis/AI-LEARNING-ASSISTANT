@@ -1,5 +1,5 @@
 import Document from "../models/Document.js";
-import Flashcard from "../models/Flashcard.js";
+import FlashCard from "../models/FlashCard.js";
 import Quiz from "../models/Quiz.js";
 import ChatHistory from "../models/ChatHistory.js";
 import { extractTextFromPdf } from "../utils/pdfParser.js";
@@ -170,7 +170,7 @@ export const getDocument = async (req, res, next) => {
     }
 
     //get count of flashcards and quizzes
-    const flashcardCount = await Flashcard.countDocuments({
+    const flashcardCount = await FlashCard.countDocuments({
       documentId: document._id,
       userId: req.user.id,
     });
@@ -229,7 +229,7 @@ export const deleteDocument = async (req, res, next) => {
           { documentId: id, userId: req.user.id },
           { session }
         ),
-        Flashcard.deleteMany(
+        FlashCard.deleteMany(
           { documentId: id, userId: req.user.id },
           { session }
         ),
