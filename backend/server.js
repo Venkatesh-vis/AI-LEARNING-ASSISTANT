@@ -12,7 +12,7 @@ import errorHandler from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const prod = process.env.NODE_ENV === 'Prod';
+const isProd = process.env.NODE_ENV === "Prod";
 
 const app = express();
 
@@ -20,7 +20,7 @@ const app = express();
 connectDB();
 
 app.use(cors({
-    origin: prod === 'Prod' ? process.env.ORIGIN : 'http://localhost:3000',credentials: true,
+    origin: isProd ? process.env.ORIGIN : 'http://localhost:3000',credentials: true,
 }));
 app.use(helmet());
 app.use(express.urlencoded({extended: true}));
