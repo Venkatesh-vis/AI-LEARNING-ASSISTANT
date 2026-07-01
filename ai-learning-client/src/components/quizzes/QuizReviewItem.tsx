@@ -4,11 +4,11 @@ import {
 } from "lucide-react";
 
 import type {
-  QuizReviewResult,
+  QuizResultItem,
 } from "../../features/quiz/quizTypes";
 
 type QuizReviewItemProps = {
-  result: QuizReviewResult;
+  result: QuizResultItem;
 };
 
 const QuizReviewItem = ({

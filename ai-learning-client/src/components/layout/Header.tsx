@@ -1,4 +1,4 @@
-import { Menu, User, Smile } from "lucide-react";
+import { Menu, User} from "lucide-react";
 import { useAppSelector } from "../../features/hooks/reduxHooks";
 
 type HeaderProps = { setOpen: React.Dispatch<React.SetStateAction<boolean>>; };
