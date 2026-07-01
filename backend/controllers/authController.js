@@ -6,7 +6,7 @@ import User from '../models/User.js';
 //Generate JWT Token
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE || '7d',
+        expiresIn: '7d',
     });
 }
 
@@ -39,7 +39,7 @@ export const register = async(req, res, next) => {
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "prod",
             sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
@@ -95,7 +95,7 @@ export const login = async(req, res, next) => {
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "prod",
             sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60 * 1000
         });

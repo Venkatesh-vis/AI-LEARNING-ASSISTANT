@@ -2,7 +2,7 @@ import {
   Calendar,
   Clock3,
   Play,
-  Eye,
+  ChartNoAxesColumn,
   Trash2,
   ClipboardList,
   CheckCircle2,
@@ -39,7 +39,7 @@ const QuizCard = ({
         p-5
         shadow-sm
         transition-all
-        duration-300
+        duration-500
         hover:-translate-y-1
         hover:shadow-xl
         hover:shadow-slate-200/60
@@ -153,13 +153,12 @@ const QuizCard = ({
             text-xs
             font-medium
 
-            ${
-              isCompleted
-                ? `
+            ${isCompleted
+              ? `
                   bg-emerald-50
                   text-emerald-700
                 `
-                : `
+              : `
                   bg-amber-50
                   text-amber-700
                 `
@@ -238,64 +237,70 @@ const QuizCard = ({
 
       <div
         className="
-          mt-6
-          flex
-          gap-3
-        "
+    mt-6
+    flex
+    gap-3
+  "
       >
-        <button
-          onClick={onStart}
-          className="
-            flex-1
-            rounded-xl
-            bg-emerald-500
-            px-4
-            py-3
-            text-sm
-            font-medium
-            text-white
-            transition
-            hover:bg-emerald-600
-            cursor-pointer
-          "
-        >
-          <span
-            className="
-              flex
-              items-center
-              justify-center
-              gap-2
-            "
-          >
-            <Play size={16} />
-
-            {isCompleted
-              ? "Retake"
-              : "Start"}
-          </span>
-        </button>
-
-        {isCompleted && (
+        {!isCompleted ? (
           <button
-            onClick={
-              onViewResults
-            }
+            onClick={onStart}
             className="
-              flex
-              items-center
-              justify-center
-              rounded-xl
-              border
-              border-slate-200
-              bg-white
-              px-4
-              text-slate-700
-              transition
-              hover:bg-slate-50
-              cursor-pointer
-            "
+        flex-1
+        rounded-xl
+        bg-emerald-500
+        px-4
+        py-3
+        text-sm
+        font-medium
+        text-white
+        transition
+        hover:bg-emerald-600
+        cursor-pointer
+      "
           >
-            <Eye size={18} />
+            <span
+              className="
+          flex
+          items-center
+          justify-center
+          gap-2
+        "
+            >
+              <Play size={16} />
+              Start Quiz
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={onViewResults}
+            className="
+        flex-1
+        rounded-xl
+        border
+        border-slate-200
+        bg-white
+        px-4
+        py-3
+        text-sm
+        font-medium
+        text-slate-700
+        transition
+        hover:bg-slate-50
+        cursor-pointer
+      "
+          >
+            <span
+              className="
+          flex
+          items-center
+          justify-center
+          gap-2
+        "
+            >
+              <ChartNoAxesColumn size={16} />
+              View Results
+            </span>
           </button>
         )}
       </div>

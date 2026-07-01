@@ -10,7 +10,7 @@ const initialState: AuthState = {
   user: null,
   registerLoading: false,
   checkAuthLoading: false,
-  checkAuthLoading: false,
+  loginLoading: false,
   registerError: null,
   loginError: null,
   checkAuthError: null,

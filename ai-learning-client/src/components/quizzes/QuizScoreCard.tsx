@@ -154,18 +154,36 @@ const QuizScoreCard = ({ title, score, percentage, totalQuestions, completedAt, 
               const offset = circumference - (percentage / 100) * circumference;
               return (
                 <>
-                  <div className=" relative h-36 w-36">
-                    <svg className=" h-36 w-36 -rotate-90">
+                  <div className="relative h-36 w-36">
+                    <svg className="h-36 w-36 -rotate-90">
                       <circle cx="72" cy="72" r={radius} fill="none" stroke="#E2E8F0" strokeWidth="10"/>
-                      <circle cx="72" cy="72" r={radius} fill="none" stroke={ percentage >= 80  ? "#10B981" : percentage >= 60  ? "#F59E0B"  : "#EF4444" } strokeWidth="10" strokeLinecap="round" strokeDasharray={ circumference } strokeDashoffset={ offset } className="transition-all duration-700"/>
+                      <circle cx="72" cy="72" r={radius} fill="none"
+                        stroke={ percentage >= 80 ? "#10B981" : percentage >= 60 ? "#F59E0B" : "#EF4444"}
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                      >
+                        <animate
+                          attributeName="stroke-dashoffset"
+                          from={circumference}
+                          to={offset}
+                          dur="1s"
+                          fill="freeze"
+                        />
+                      </circle>
                     </svg>
-                    <div className=" absolute inset-0 flex flex-col items-center justify-center">
-                      <div className={`text-4xl font-extrabold${getScoreColor()}`}>{percentage}%</div>
+
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className={`text-4xl font-extrabold ${getScoreColor()}`}>
+                        {percentage}%
+                      </div>
                     </div>
                   </div>
-                  <div className=" mt-6 flex items-center gap-2 text-slate-600">
-                    <CheckCircle2 size={18}/>
-                    Final Score
+
+                  <div className="mt-6 flex items-center gap-2 text-slate-600">
+                    <CheckCircle2 size={18} />
+                    <span>Final Score</span>
                   </div>
                 </>
               );
