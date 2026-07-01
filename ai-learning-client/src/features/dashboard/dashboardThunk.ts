@@ -1,6 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import type { DashboardData } from "./dashboardType";
 import { getDashboardState } from "./dashboardService";
+import type { DashboardData } from "./dashboardTypes";
 
 
 export const getDashboard =

@@ -1,5 +1,6 @@
 import { requestWithRetry } from "../../api/apiRequest";
-import type {ChatMessage,AskQuestionRequest,AskQuestionResponse,GenerateSummaryRequest,Summary,ExplainConceptRequest,ConceptExplanation,GenerateQuizRequest,Quiz,GenerateFlashcardsRequest,FlashcardSet, DeleteFlashcardsResponse,} from "./aiTypes";
+import type { GenerateQuizRequest, Quiz } from "../quiz/quizTypes";
+import type {ChatMessage,AskQuestionRequest,AskQuestionResponse,GenerateSummaryRequest,Summary,ExplainConceptRequest,ConceptExplanation,GenerateFlashcardsRequest,FlashcardSet, DeleteFlashcardsResponse,} from "./aiTypes";
 
 /* =========================
    CHAT

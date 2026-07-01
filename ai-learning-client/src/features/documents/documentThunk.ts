@@ -1,6 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import {uploadDocumentService,getDocumentsService,getDocumentByIdService, deleteDocumentService,} from "./documentService";
-import type {UploadDocumentRequest, Document, DeleteDocumentResponse} from "./documentTypes";
+import type {UploadDocumentRequest, Document} from "./documentTypes";
 
 export const uploadDocument =
   createAsyncThunk<
