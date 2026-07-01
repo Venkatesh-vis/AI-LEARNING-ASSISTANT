@@ -40,19 +40,24 @@ const Dashboard = () => {
   const { overview, recentActivity } = dashboard;
 
   const combinedActivity = [
-    ...recentActivity.documents.map((doc) => ({
-      type: "document",
-      id: doc._id,
-      title: doc.title,
-      date: doc.lastAccessed,
-    })),
-    ...recentActivity.quizzes.map((quiz) => ({
-      type: "quiz",
-      id: quiz._id,
-      title: quiz.title,
-      date: quiz.completedAt,
-    })),
-  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  ...recentActivity.documents.map((doc) => ({
+    type: "document" as const,
+    id: doc._id,
+    title: doc.title,
+    date: doc.lastAccessed,
+  })),
+  ...recentActivity.quizzes.map((quiz) => ({
+    type: "quiz" as const,
+    id: quiz._id,
+    title: quiz.title,
+    date: quiz.completedAt,
+  })),
+].sort((a, b) => {
+  const dateA = a.date ? new Date(a.date).getTime() : 0;
+  const dateB = b.date ? new Date(b.date).getTime() : 0;
+
+  return dateB - dateA;
+});
 
   const visibleActivity = showAll ? combinedActivity : combinedActivity.slice(0, 4);
 

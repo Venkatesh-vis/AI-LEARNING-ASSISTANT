@@ -4,7 +4,7 @@ import auth from "../middleware/auth.js";
 const router = express.Router();
 import authRoutes from "./authRoutes.js";
 import documentRoutes from "./documentRoutes.js";
-import flashcardRoutes from "./flashcardRoutes.js";
+import flashcardRoutes from "./flashCardRoutes.js";
 import quizRoutes from "./quizRoutes.js";
 import aiRoutes from "./aiRoutes.js";
 import progressRoutes from "./progressRoutes.js";
